@@ -1,0 +1,24 @@
+# VERTIA SYSTEM CONTEXT & ARCHITECTURE RULES
+
+## 1. PROPÓSITO DEL SISTEMA
+Estás desarrollando "Vertia Legal", un Smart CLM (Contract Lifecycle Management) de alta resiliencia y misión crítica para estudios de abogados y áreas legales corporativas de gran escala. El propósito es auditar e indexar contratos privados en tiempo real mitigando el riesgo humano y normativo.
+
+## 2. FILOSOFÍA ARQUITECTÓNICA & STACK LIBRE (Soberanía Tecnológica)
+Para cumplir con la promesa de Soberanía Digital y reducción estricta de OPEX de Vertia, todo el sistema debe construirse exclusivamente sobre herramientas y estándares libres o independientes.
+- Frontend & Backend Backend unificado: Next.js 15 (App Router) + TypeScript.
+- Base de Datos & Storage: Supabase (PostgreSQL para metadatos, tablas relacionales e indexación vectorizada con pgvector; Supabase Storage privado para el resguardo de PDFs bajo políticas RLS).
+- Cerebro de Inteligencia Artificial: Groq SDK API (on-demand por contrato) con `llama-3.3-70b-versatile`. La auditoría cognitiva NO se dispara en upload.
+- Indexación Local: extracción con pdf-parse + fallback OCR local (tesseract.js). Texto en `extracted_text` + FTS PostgreSQL español (tokens = 0).
+- Principio de Privacidad: El procesamiento de IA es efímero en memoria y los datos crudos contractuales nunca se utilizan para entrenamientos públicos.
+
+## 3. IDENTIDAD VISUAL & UI/UX (Cyber War-Room)
+La interfaz visual debe evocar un centro de control operativo de alta precisión (estética HUD - Head-Up Display). Se prohíben los diseños aburridos, planos o puramente corporativos blancos tipo plantilla estándar.
+- Paleta de Colores Primaria: Navy profundo y oscuros industriales para el fondo, grises acero para bordes y contenedores de datos.
+- Colores de Acento & Funcionales: Cyan y Esmeralda/Teal para elementos de control e indicadores activos; Carmín/Rojo sutil para alertas críticas y zonas de alto riesgo contractual.
+- Estilo: Glassmorphic moderado, tipografías nítidas (como Montserrat, Inter o Roboto), paneles de información divididos (Split-Screen) de alta densidad de datos sin generar fatiga visual.
+
+## 4. REGLAS DE CÓDIGO Y SEGURIDAD
+- Inmutabilidad Criptográfica: Cada documento procesado debe calcular y almacenar su Hash (SHA-256) en el backend para auditorías de integridad estructural.
+- Tipado Estricto: Todo el código debe estar fuertemente tipado en TypeScript. Se prohíbe el uso de 'any'.
+- Respuestas Estructuradas: Las llamadas al LLM (Llama 3 en Groq) deben exigir obligatoriamente un formato JSON estricto (`response_format: { type: 'json_object' }`) mapeado directamente con las interfaces del frontend.
+- Escalabilidad: Estructura de carpetas modular (`/components/hud`, `/app/api/contracts`, `/lib/supabase`).
