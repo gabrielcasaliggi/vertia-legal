@@ -1,5 +1,3 @@
-import { pdf } from "pdf-to-img";
-
 const DEFAULT_MAX_PAGES = 6;
 const RENDER_SCALE = 2.2;
 
@@ -17,6 +15,7 @@ export async function renderPdfPagesToPng(
   const pages: Buffer[] = [];
 
   try {
+    const { pdf } = await import("pdf-to-img");
     const document = await pdf(fileBuffer, { scale: RENDER_SCALE });
     let pageIndex = 0;
 

@@ -2,7 +2,6 @@ import { createHash, randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { extractContractMetadataFromText } from "@/lib/contracts/metadata-extraction";
 import type { ProcessingPhase } from "@/lib/contracts/pipeline-phases";
-import { extractTextLocally, LocalExtractionError } from "@/lib/pdf/extract-local";
 import { logActivity } from "@/lib/contracts/activity-log";
 import { isDocumentCategory } from "@/lib/contracts/document-categories";
 import { findOrCreateClientByName } from "@/lib/clients/client-360-service";
@@ -18,6 +17,7 @@ const MAX_FILE_SIZE_BYTES = process.env.VERCEL
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
+export const dynamic = "force-dynamic";
 
 function jsonError(
   error: string,
@@ -40,19 +40,33 @@ export function GET(): NextResponse<{ ok: true; route: string }> {
 }
 
 async function cleanupContractRecord(contractId: string): Promise<void> {
-  const supabase = createServerSupabaseClient();
-  await supabase.from("legal_contracts").delete().eq("id", contractId);
+  try {
+    const supabase = createServerSupabaseClient();
+    await supabase.from("legal_contracts").delete().eq("id", contractId);
+  } catch (cleanupError) {
+    console.error(
+      "[contracts/upload] cleanup failed:",
+      cleanupError instanceof Error ? cleanupError.message : cleanupError,
+    );
+  }
 }
 
 async function updateProcessingPhase(
   contractId: string,
   phase: ProcessingPhase,
 ): Promise<void> {
-  const supabase = createServerSupabaseClient();
-  await supabase
-    .from("legal_contracts")
-    .update({ processing_phase: phase })
-    .eq("id", contractId);
+  try {
+    const supabase = createServerSupabaseClient();
+    await supabase
+      .from("legal_contracts")
+      .update({ processing_phase: phase })
+      .eq("id", contractId);
+  } catch (phaseError) {
+    console.error(
+      "[contracts/upload] phase update failed:",
+      phaseError instanceof Error ? phaseError.message : phaseError,
+    );
+  }
 }
 
 export async function POST(
@@ -105,6 +119,7 @@ export async function POST(
     const storagePath = buildContractStoragePath(contractId);
 
     const fileHash = createHash("sha256").update(fileBuffer).digest("hex");
+    const { extractTextLocally } = await import("@/lib/pdf/extract-local");
     const extractedText = await extractTextLocally(fileBuffer);
     const extractedMetadata = extractContractMetadataFromText(extractedText);
 
@@ -195,7 +210,11 @@ export async function POST(
       await updateProcessingPhase(contractId, "failed");
     }
 
-    if (error instanceof LocalExtractionError) {
+    const { LocalExtractionError: ExtractionError } = await import(
+      "@/lib/pdf/extract-local"
+    );
+
+    if (error instanceof ExtractionError) {
       if (contractId) {
         await cleanupContractRecord(contractId);
       }

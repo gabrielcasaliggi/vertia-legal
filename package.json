@@ -19,6 +19,7 @@
     "openai": "^4.104.0",
     "pdf-parse": "^2.4.5",
     "pdf-to-img": "^6.1.0",
+    "pdfjs-dist": "^5.7.284",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "tesseract.js": "^7.0.0"

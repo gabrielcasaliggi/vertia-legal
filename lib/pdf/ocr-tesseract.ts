@@ -1,6 +1,3 @@
-import { createWorker } from "tesseract.js";
-import { renderPdfPagesToPng } from "@/lib/pdf/render-pages";
-
 const MAX_OCR_PAGES = 5;
 
 export class TesseractOcrError extends Error {
@@ -11,6 +8,9 @@ export class TesseractOcrError extends Error {
 }
 
 export async function ocrPdfWithTesseract(fileBuffer: Buffer): Promise<string> {
+  const { createWorker } = await import("tesseract.js");
+  const { renderPdfPagesToPng } = await import("@/lib/pdf/render-pages");
+
   const pages = await renderPdfPagesToPng(fileBuffer, MAX_OCR_PAGES);
   const worker = await createWorker("spa");
 

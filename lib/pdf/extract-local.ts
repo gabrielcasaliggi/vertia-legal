@@ -1,9 +1,5 @@
-import { classifyAndExtractPdf, PdfExtractionError } from "@/lib/pdf/extract-text";
-import { ocrPdfWithTesseract, TesseractOcrError } from "@/lib/pdf/ocr-tesseract";
-
 const MIN_INDEXED_TEXT_LENGTH = 30;
 
-/** Tesseract + render en Vercel suele exceder memoria/tiempo; evitar crash con HTML 500. */
 function isServerOcrEnabled(): boolean {
   return process.env.ALLOW_SERVER_OCR === "true";
 }
@@ -20,8 +16,10 @@ export class LocalExtractionError extends Error {
 }
 
 export async function extractTextLocally(fileBuffer: Buffer): Promise<string> {
+  const textModule = await import("@/lib/pdf/extract-text");
+
   try {
-    const outcome = await classifyAndExtractPdf(fileBuffer);
+    const outcome = await textModule.classifyAndExtractPdf(fileBuffer);
 
     if (outcome.mode === "native_text" && outcome.text) {
       return outcome.text;
@@ -33,7 +31,8 @@ export async function extractTextLocally(fileBuffer: Buffer): Promise<string> {
       );
     }
 
-    const ocrText = await ocrPdfWithTesseract(fileBuffer);
+    const ocrModule = await import("@/lib/pdf/ocr-tesseract");
+    const ocrText = await ocrModule.ocrPdfWithTesseract(fileBuffer);
 
     if (ocrText.length < MIN_INDEXED_TEXT_LENGTH) {
       throw new LocalExtractionError(
@@ -43,11 +42,12 @@ export async function extractTextLocally(fileBuffer: Buffer): Promise<string> {
 
     return ocrText;
   } catch (error) {
-    if (error instanceof PdfExtractionError) {
+    if (error instanceof textModule.PdfExtractionError) {
       throw new LocalExtractionError(error.message);
     }
 
-    if (error instanceof TesseractOcrError) {
+    const ocrModule = await import("@/lib/pdf/ocr-tesseract");
+    if (error instanceof ocrModule.TesseractOcrError) {
       throw new LocalExtractionError(error.message);
     }
 
