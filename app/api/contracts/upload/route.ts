@@ -5,6 +5,9 @@ import type { ProcessingPhase } from "@/lib/contracts/pipeline-phases";
 import { logActivity } from "@/lib/contracts/activity-log";
 import { isDocumentCategory } from "@/lib/contracts/document-categories";
 import { findOrCreateClientByName } from "@/lib/clients/client-360-service";
+import { createContractVersion } from "@/lib/contracts/contract-versions";
+import { getCurrentOrganizationId } from "@/lib/auth/organization";
+import { getCurrentProfile } from "@/lib/auth/session";
 import { buildContractStoragePath } from "@/lib/storage/contract-path";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { ApiErrorResponse, ContractIndexResponse } from "@/lib/supabase/types";
@@ -116,7 +119,9 @@ export async function POST(
 
     const fileBuffer = Buffer.from(await fileEntry.arrayBuffer());
     contractId = randomUUID();
-    const storagePath = buildContractStoragePath(contractId);
+    const organizationId = await getCurrentOrganizationId();
+    const profile = await getCurrentProfile();
+    const storagePath = buildContractStoragePath(contractId, organizationId, 1);
 
     const fileHash = createHash("sha256").update(fileBuffer).digest("hex");
     const { extractTextLocally } = await import("@/lib/pdf/extract-local");
@@ -142,6 +147,7 @@ export async function POST(
         expires_at: extractedMetadata.expires_at,
         lifecycle_status: extractedMetadata.lifecycle_status,
         contract_type: contractType,
+        organization_id: organizationId,
         status: "indexed",
         processing_phase: "registering_record",
       })
@@ -178,6 +184,17 @@ export async function POST(
 
     await updateProcessingPhase(contractId, "indexing_search");
     await updateProcessingPhase(contractId, "completed");
+
+    await createContractVersion({
+      contractId,
+      versionNumber: 1,
+      storagePath,
+      fileHash,
+      fileName: fileEntry.name,
+      uploadedBy: profile?.id ?? null,
+      uploadedByName: profile?.full_name ?? actorName,
+      organizationId,
+    });
 
     await logActivity({
       action: "contract.uploaded",

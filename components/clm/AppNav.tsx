@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { BrandMark } from "@/components/clm/BrandMark";
 import { UserMenu } from "@/components/clm/UserMenu";
 import type { UserProfile } from "@/lib/auth/session";
+import { canManageUsers } from "@/lib/auth/roles";
 
 const NAV_ITEMS = [
   { href: "/", label: "Inicio", match: (path: string) => path === "/" },
@@ -16,6 +17,12 @@ const NAV_ITEMS = [
   },
   { href: "/tareas", label: "Tareas", match: (path: string) => path === "/tareas" },
   { href: "/reportes", label: "Reportes", match: (path: string) => path === "/reportes" },
+  {
+    href: "/admin/usuarios",
+    label: "Admin",
+    match: (path: string) => path.startsWith("/admin"),
+    adminOnly: true,
+  },
 ] as const;
 
 interface AppNavProps {
@@ -34,7 +41,9 @@ export function AppNav({ onOpenHelp, profile }: AppNavProps) {
             <BrandMark />
           </div>
 
-          {NAV_ITEMS.map((item) => {
+          {NAV_ITEMS.filter(
+            (item) => !("adminOnly" in item && item.adminOnly) || (profile && canManageUsers(profile.role)),
+          ).map((item) => {
             const active = item.match(pathname);
             return (
               <Link

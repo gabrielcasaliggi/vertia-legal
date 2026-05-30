@@ -55,6 +55,7 @@ export interface Database {
           client_id: string | null;
           matter_id: string | null;
           document_category: DocumentCategory | null;
+          organization_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -81,6 +82,7 @@ export interface Database {
           client_id?: string | null;
           matter_id?: string | null;
           document_category?: DocumentCategory | null;
+          organization_id?: string | null;
           created_at?: string;
         };
         Update: {
@@ -107,6 +109,7 @@ export interface Database {
           client_id?: string | null;
           matter_id?: string | null;
           document_category?: DocumentCategory | null;
+          organization_id?: string | null;
           created_at?: string;
         };
         Relationships: [];
@@ -222,9 +225,11 @@ export interface Database {
           title: string;
           description: string | null;
           assignee_name: string | null;
+          assignee_user_id: string | null;
           due_at: string | null;
           status: TaskStatus;
           priority: TaskPriority;
+          organization_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -236,9 +241,11 @@ export interface Database {
           title: string;
           description?: string | null;
           assignee_name?: string | null;
+          assignee_user_id?: string | null;
           due_at?: string | null;
           status?: TaskStatus;
           priority?: TaskPriority;
+          organization_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -250,11 +257,184 @@ export interface Database {
           title?: string;
           description?: string | null;
           assignee_name?: string | null;
+          assignee_user_id?: string | null;
           due_at?: string | null;
           status?: TaskStatus;
           priority?: TaskPriority;
+          organization_id?: string | null;
           created_at?: string;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      contract_versions: {
+        Row: {
+          id: string;
+          contract_id: string;
+          version_number: number;
+          storage_path: string;
+          file_hash: string;
+          file_name: string;
+          uploaded_by: string | null;
+          uploaded_by_name: string | null;
+          organization_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          contract_id: string;
+          version_number: number;
+          storage_path: string;
+          file_hash: string;
+          file_name: string;
+          uploaded_by?: string | null;
+          uploaded_by_name?: string | null;
+          organization_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          contract_id?: string;
+          version_number?: number;
+          storage_path?: string;
+          file_hash?: string;
+          file_name?: string;
+          uploaded_by?: string | null;
+          uploaded_by_name?: string | null;
+          organization_id?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      contract_audits: {
+        Row: {
+          id: string;
+          contract_id: string;
+          contract_version_id: string | null;
+          score_riesgo: number;
+          analysis_result: Json;
+          model: string;
+          actor_user_id: string | null;
+          actor_name: string;
+          organization_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          contract_id: string;
+          contract_version_id?: string | null;
+          score_riesgo: number;
+          analysis_result: Json;
+          model?: string;
+          actor_user_id?: string | null;
+          actor_name?: string;
+          organization_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          contract_id?: string;
+          contract_version_id?: string | null;
+          score_riesgo?: number;
+          analysis_result?: Json;
+          model?: string;
+          actor_user_id?: string | null;
+          actor_name?: string;
+          organization_id?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      contract_ai_queries: {
+        Row: {
+          id: string;
+          contract_id: string;
+          modo: string;
+          pregunta: string;
+          respuesta_estructurada: Json;
+          respuesta_texto: string;
+          contexto_insuficiente: boolean;
+          actor_user_id: string | null;
+          actor_name: string;
+          organization_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          contract_id: string;
+          modo: string;
+          pregunta: string;
+          respuesta_estructurada: Json;
+          respuesta_texto: string;
+          contexto_insuficiente?: boolean;
+          actor_user_id?: string | null;
+          actor_name?: string;
+          organization_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          contract_id?: string;
+          modo?: string;
+          pregunta?: string;
+          respuesta_estructurada?: Json;
+          respuesta_texto?: string;
+          contexto_insuficiente?: boolean;
+          actor_user_id?: string | null;
+          actor_name?: string;
+          organization_id?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      organizations: {
+        Row: {
+          id: string;
+          name: string;
+          slug: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          slug: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          slug?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      organization_members: {
+        Row: {
+          id: string;
+          organization_id: string;
+          user_id: string;
+          role: string;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          user_id: string;
+          role?: string;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          user_id?: string;
+          role?: string;
+          is_active?: boolean;
+          created_at?: string;
         };
         Relationships: [];
       };

@@ -9,6 +9,7 @@ export interface ContractTask {
   title: string;
   description: string | null;
   assignee_name: string | null;
+  assignee_user_id: string | null;
   due_at: string | null;
   status: TaskStatus;
   priority: TaskPriority;

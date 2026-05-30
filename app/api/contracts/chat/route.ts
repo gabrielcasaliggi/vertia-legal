@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logActivity } from "@/lib/contracts/activity-log";
+import { persistContractAiQuery } from "@/lib/contracts/contract-ai-queries";
+import { getCurrentOrganizationId } from "@/lib/auth/organization";
+import { getCurrentProfile } from "@/lib/auth/session";
 import {
   runContractChat,
   type AssistedQueryMode,
@@ -157,6 +160,19 @@ export async function POST(
     );
 
     if (contractId) {
+      const profile = await getCurrentProfile();
+      const organizationId = await getCurrentOrganizationId();
+
+      await persistContractAiQuery({
+        contractId,
+        message,
+        structured: response.structured,
+        respuestaTexto: response.respuesta,
+        actorUserId: profile?.id ?? null,
+        actorName: profile?.full_name,
+        organizationId,
+      });
+
       await logActivity({
         action: "contract.assisted_query",
         entityType: "legal_contract",

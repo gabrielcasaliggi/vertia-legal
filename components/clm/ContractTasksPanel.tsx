@@ -28,6 +28,8 @@ export function ContractTasksPanel({
   const [assignee, setAssignee] = useState("");
   const [dueAt, setDueAt] = useState("");
   const [priority, setPriority] = useState<TaskPriority>("normal");
+  const [assigneeUserId, setAssigneeUserId] = useState("");
+  const [assignees, setAssignees] = useState<Array<{ id: string; full_name: string }>>([]);
   const [isSaving, setIsSaving] = useState(false);
 
   const loadTasks = useCallback(async () => {
@@ -52,6 +54,17 @@ export function ContractTasksPanel({
     void loadTasks();
   }, [loadTasks]);
 
+  useEffect(() => {
+    async function loadAssignees() {
+      const response = await fetch("/api/users/assignees");
+      const payload = await response.json();
+      if (response.ok) {
+        setAssignees(payload.assignees ?? []);
+      }
+    }
+    void loadAssignees();
+  }, []);
+
   async function handleCreate(event: React.FormEvent) {
     event.preventDefault();
     if (!newTitle.trim()) {
@@ -65,6 +78,7 @@ export function ContractTasksPanel({
       body: JSON.stringify({
         title: newTitle.trim(),
         assignee_name: assignee.trim() || null,
+        assignee_user_id: assigneeUserId || null,
         due_at: dueAt ? new Date(`${dueAt}T12:00:00`).toISOString() : null,
         priority,
         contract_id: contractId ?? null,
@@ -75,6 +89,7 @@ export function ContractTasksPanel({
     if (response.ok) {
       setNewTitle("");
       setAssignee("");
+      setAssigneeUserId("");
       setDueAt("");
       await loadTasks();
       onTasksChanged?.();
@@ -104,12 +119,23 @@ export function ContractTasksPanel({
           className="corp-input w-full"
         />
         <div className="grid gap-3 sm:grid-cols-3">
-          <input
-            value={assignee}
-            onChange={(event) => setAssignee(event.target.value)}
-            placeholder="Responsable"
+          <select
+            value={assigneeUserId}
+            onChange={(event) => {
+              const value = event.target.value;
+              setAssigneeUserId(value);
+              const selected = assignees.find((item) => item.id === value);
+              setAssignee(selected?.full_name ?? "");
+            }}
             className="corp-input w-full"
-          />
+          >
+            <option value="">Responsable del estudio</option>
+            {assignees.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.full_name}
+              </option>
+            ))}
+          </select>
           <input
             type="date"
             value={dueAt}

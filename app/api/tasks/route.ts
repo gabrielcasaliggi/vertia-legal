@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentProfile } from "@/lib/auth/session";
 import { logActivity } from "@/lib/contracts/activity-log";
 import type { ContractTask, TaskPriority, TaskStatus } from "@/lib/contracts/tasks";
+import { getCurrentOrganizationId } from "@/lib/auth/organization";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { ApiErrorResponse } from "@/lib/supabase/types";
 
@@ -123,6 +124,7 @@ export async function POST(request: NextRequest): Promise<
       title?: string;
       description?: string;
       assignee_name?: string;
+      assignee_user_id?: string;
       due_at?: string;
       contract_id?: string;
       obligation_id?: string;
@@ -145,16 +147,35 @@ export async function POST(request: NextRequest): Promise<
         : "normal";
 
     const supabase = createServerSupabaseClient();
+    const organizationId = await getCurrentOrganizationId();
+
+    let assigneeUserId =
+      typeof payload.assignee_user_id === "string" && payload.assignee_user_id.trim()
+        ? payload.assignee_user_id.trim()
+        : null;
+    let assigneeName = payload.assignee_name?.trim() || null;
+
+    if (assigneeUserId) {
+      const { data: assigneeProfile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", assigneeUserId)
+        .maybeSingle();
+      assigneeName = assigneeProfile?.full_name ?? assigneeName;
+    }
+
     const { data, error } = await supabase
       .from("contract_tasks")
       .insert({
         title,
         description: payload.description?.trim() || null,
-        assignee_name: payload.assignee_name?.trim() || null,
+        assignee_name: assigneeName,
+        assignee_user_id: assigneeUserId,
         due_at: payload.due_at || null,
         contract_id: payload.contract_id || null,
         obligation_id: payload.obligation_id || null,
         client_id: payload.client_id || null,
+        organization_id: organizationId,
         status,
         priority,
       })

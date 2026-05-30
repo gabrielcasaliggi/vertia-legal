@@ -5,6 +5,7 @@ import { AssistedQueryHistoryPanel } from "@/components/clm/AssistedQueryHistory
 import { ContractChatPanel } from "@/components/clm/ContractChatPanel";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ContractDocumentOpsPanel } from "@/components/clm/ContractDocumentOpsPanel";
 import { ContractMetadataEditor } from "@/components/clm/ContractMetadataEditor";
 import { ContractObligationsPanel } from "@/components/clm/ContractObligationsPanel";
 import { ContractRenewalPanel } from "@/components/clm/ContractRenewalPanel";
@@ -44,6 +45,18 @@ export function ContractDetailPanel({ contractId }: ContractDetailPanelProps) {
   const applyContract = useCallback((row: LegalContract) => {
     setContract(row);
   }, []);
+
+  const reloadContract = useCallback(async () => {
+    const supabase = createBrowserSupabaseClient();
+    const { data } = await supabase
+      .from("legal_contracts")
+      .select("*")
+      .eq("id", contractId)
+      .single();
+    if (data) {
+      applyContract(data);
+    }
+  }, [applyContract, contractId]);
 
   useEffect(() => {
     const supabase = createBrowserSupabaseClient();
@@ -275,6 +288,13 @@ export function ContractDetailPanel({ contractId }: ContractDetailPanelProps) {
 
           {contract && (
             <ContractRenewalPanel contract={contract} onUpdated={applyContract} />
+          )}
+
+          {contract && (
+            <ContractDocumentOpsPanel
+              contractId={contractId}
+              onUpdated={() => void reloadContract()}
+            />
           )}
 
           <ContractObligationsPanel contractId={contractId} />
