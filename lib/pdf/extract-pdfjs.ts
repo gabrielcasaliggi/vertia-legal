@@ -13,8 +13,34 @@ interface TextItemLike {
   str?: string;
 }
 
+async function installPdfJsNodePolyfills(): Promise<void> {
+  const globalScope = globalThis as typeof globalThis & {
+    DOMMatrix?: typeof DOMMatrix;
+    ImageData?: typeof ImageData;
+    Path2D?: typeof Path2D;
+  };
+
+  if (typeof globalScope.DOMMatrix !== "undefined") {
+    return;
+  }
+
+  try {
+    const canvas = await import("@napi-rs/canvas");
+    globalScope.DOMMatrix = canvas.DOMMatrix as unknown as typeof DOMMatrix;
+    globalScope.ImageData = canvas.ImageData as unknown as typeof ImageData;
+    globalScope.Path2D = canvas.Path2D as unknown as typeof Path2D;
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "No se pudieron inicializar polyfills de PDF.";
+    throw new PdfJsExtractionError(message);
+  }
+}
+
 export async function extractNativeTextWithPdfJs(fileBuffer: Buffer): Promise<string> {
   try {
+    await installPdfJsNodePolyfills();
     const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
     const loadingTask = pdfjs.getDocument({
       data: new Uint8Array(fileBuffer),
