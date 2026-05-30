@@ -89,6 +89,14 @@ export function ContractDropzone({
         <p className="mt-2 text-sm text-corp-muted">
           El documento será indexado localmente sin auditoría automática.
         </p>
+        <div className="mx-auto mt-4 max-w-2xl rounded-corp border border-amber-300/60 bg-amber-50 px-4 py-3 text-left text-xs leading-relaxed text-amber-950">
+          <p className="font-semibold">Importante sobre PDFs escaneados</p>
+          <p className="mt-1">
+            Para búsqueda e IA, subí PDFs digitales con texto copiable. Si el archivo es
+            una imagen escaneada, primero aplicá OCR y luego cargá la versión con capa
+            de texto.
+          </p>
+        </div>
       </div>
     </div>
   );

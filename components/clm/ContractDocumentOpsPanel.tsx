@@ -105,6 +105,13 @@ export function ContractDocumentOpsPanel({
       <p className="mb-4 text-sm text-corp-muted">
         Reindexá el texto del PDF actual o subí una nueva versión manteniendo historial.
       </p>
+      <div className="mb-4 rounded-corp border border-amber-300/60 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+        <p className="font-semibold">Antes de reemplazar un PDF</p>
+        <p className="mt-1 text-xs leading-relaxed">
+          La indexación requiere texto copiable. Si el documento nuevo es escaneado,
+          aplicá OCR previamente y subí el PDF resultante con capa de texto.
+        </p>
+      </div>
 
       <div className="flex flex-wrap gap-2">
         <button
