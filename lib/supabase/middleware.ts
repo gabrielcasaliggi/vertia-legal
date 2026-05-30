@@ -42,6 +42,16 @@ export async function updateSession(request: NextRequest) {
       `Bearer ${process.env.NOTIFICATION_CRON_SECRET}`;
 
   if (!user && !isLogin && !isAuthApi && !isNotificationCron) {
+    if (request.nextUrl.pathname.startsWith("/api/")) {
+      return NextResponse.json(
+        {
+          error: "No autorizado.",
+          details: "Iniciá sesión para continuar.",
+        },
+        { status: 401 },
+      );
+    }
+
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("next", request.nextUrl.pathname);

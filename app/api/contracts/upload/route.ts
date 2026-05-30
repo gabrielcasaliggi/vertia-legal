@@ -11,7 +11,13 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { ApiErrorResponse, ContractIndexResponse } from "@/lib/supabase/types";
 
 const CONTRACTS_BUCKET = "contracts";
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+/** Vercel Hobby limita el body ~4.5 MB; en local permitimos 10 MB. */
+const MAX_FILE_SIZE_BYTES = process.env.VERCEL
+  ? 4 * 1024 * 1024
+  : 10 * 1024 * 1024;
+
+export const runtime = "nodejs";
+export const maxDuration = 60;
 
 function jsonError(
   error: string,
@@ -86,7 +92,8 @@ export async function POST(
     }
 
     if (fileEntry.size === 0 || fileEntry.size > MAX_FILE_SIZE_BYTES) {
-      return jsonError("El PDF está vacío o excede 10 MB.", 400);
+      const limitMb = Math.round(MAX_FILE_SIZE_BYTES / (1024 * 1024));
+      return jsonError(`El PDF está vacío o excede ${limitMb} MB.`, 400);
     }
 
     const fileBuffer = Buffer.from(await fileEntry.arrayBuffer());

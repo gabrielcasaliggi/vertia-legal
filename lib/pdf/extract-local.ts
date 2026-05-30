@@ -3,6 +3,15 @@ import { ocrPdfWithTesseract, TesseractOcrError } from "@/lib/pdf/ocr-tesseract"
 
 const MIN_INDEXED_TEXT_LENGTH = 30;
 
+/** Tesseract + render en Vercel suele exceder memoria/tiempo; evitar crash con HTML 500. */
+function isServerOcrEnabled(): boolean {
+  return process.env.ALLOW_SERVER_OCR === "true";
+}
+
+function isLikelyVercelRuntime(): boolean {
+  return process.env.VERCEL === "1";
+}
+
 export class LocalExtractionError extends Error {
   constructor(message: string) {
     super(message);
@@ -16,6 +25,12 @@ export async function extractTextLocally(fileBuffer: Buffer): Promise<string> {
 
     if (outcome.mode === "native_text" && outcome.text) {
       return outcome.text;
+    }
+
+    if (isLikelyVercelRuntime() && !isServerOcrEnabled()) {
+      throw new LocalExtractionError(
+        "PDF escaneado o sin texto seleccionable. En producción (Vercel) usá un PDF digital con texto copiable, o habilitá ALLOW_SERVER_OCR=true solo si el plan lo soporta.",
+      );
     }
 
     const ocrText = await ocrPdfWithTesseract(fileBuffer);

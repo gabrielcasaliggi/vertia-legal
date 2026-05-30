@@ -15,6 +15,7 @@ import { ExplorerSidebar } from "@/components/clm/ExplorerSidebar";
 import type { ContractIndexResponse, ContractListItem, ContractSearchMatch } from "@/lib/supabase/types";
 import type { ContractUploadMetadata } from "@/components/clm/ContractUploadForm";
 import type { ObligationListItem } from "@/lib/contracts/obligations";
+import { parseApiJsonResponse } from "@/lib/http/api-response";
 
 interface ApiErrorBody {
   error: string;
@@ -231,9 +232,11 @@ export default function ClmWorkspacePage() {
       const response = await fetch("/api/contracts/upload", {
         method: "POST",
         body: formData,
+        credentials: "include",
       });
 
-      const payload: ContractIndexResponse | ApiErrorBody = await response.json();
+      const payload: ContractIndexResponse | ApiErrorBody =
+        await parseApiJsonResponse<ContractIndexResponse | ApiErrorBody>(response);
 
       if (!response.ok) {
         throw new Error(
