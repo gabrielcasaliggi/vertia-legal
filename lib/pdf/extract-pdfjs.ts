@@ -38,10 +38,25 @@ async function installPdfJsNodePolyfills(): Promise<void> {
   }
 }
 
+async function resolvePdfWorkerPath(): Promise<string | null> {
+  try {
+    const { createRequire } = await import("node:module");
+    const require = createRequire(`${process.cwd()}/package.json`);
+    return require.resolve("pdfjs-dist/legacy/build/pdf.worker.mjs");
+  } catch {
+    return null;
+  }
+}
+
 export async function extractNativeTextWithPdfJs(fileBuffer: Buffer): Promise<string> {
   try {
     await installPdfJsNodePolyfills();
     const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    const workerSrc = await resolvePdfWorkerPath();
+    if (workerSrc) {
+      pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
+    }
+
     const loadingTask = pdfjs.getDocument({
       data: new Uint8Array(fileBuffer),
       useSystemFonts: true,
