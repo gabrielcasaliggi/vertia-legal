@@ -35,6 +35,10 @@ function isPdfFile(file: File): boolean {
   return file.type === "application/pdf" || normalizedName.endsWith(".pdf");
 }
 
+export function GET(): NextResponse<{ ok: true; route: string }> {
+  return NextResponse.json({ ok: true, route: "contracts/upload" });
+}
+
 async function cleanupContractRecord(contractId: string): Promise<void> {
   const supabase = createServerSupabaseClient();
   await supabase.from("legal_contracts").delete().eq("id", contractId);
