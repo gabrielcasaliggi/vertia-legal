@@ -106,45 +106,57 @@ export function AdminUsersPanel() {
             onSubmit={(event) => void handleCreate(event)}
             className="mt-4 grid gap-3 md:grid-cols-2"
           >
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Correo"
-              className="corp-input"
-            />
-            <input
-              type="password"
-              required
-              minLength={8}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Contraseña (mín. 8)"
-              className="corp-input"
-            />
-            <input
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="Nombre completo"
-              className="corp-input"
-            />
-            <select
-              value={role}
-              onChange={(e) => {
-                const value = e.target.value;
-                if (isUserRole(value)) {
-                  setRole(value);
-                }
-              }}
-              className="corp-input"
-            >
-              {ROLES.map((item) => (
-                <option key={item} value={item}>
-                  {USER_ROLE_LABELS[item]}
-                </option>
-              ))}
-            </select>
+            <label className="space-y-1">
+              <span className="corp-label text-[11px]">Correo</span>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="usuario@estudio.com"
+                className="corp-input w-full"
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="corp-label text-[11px]">Contraseña inicial</span>
+              <input
+                type="password"
+                required
+                minLength={8}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Mínimo 8 caracteres"
+                className="corp-input w-full"
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="corp-label text-[11px]">Nombre completo</span>
+              <input
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Nombre y apellido"
+                className="corp-input w-full"
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="corp-label text-[11px]">Rol inicial</span>
+              <select
+                value={role}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (isUserRole(value)) {
+                    setRole(value);
+                  }
+                }}
+                className="corp-input w-full"
+              >
+                {ROLES.map((item) => (
+                  <option key={item} value={item}>
+                    {USER_ROLE_LABELS[item]}
+                  </option>
+                ))}
+              </select>
+            </label>
             <button type="submit" disabled={isSaving} className="corp-btn-primary md:col-span-2">
               {isSaving ? "Creando..." : "Crear usuario"}
             </button>

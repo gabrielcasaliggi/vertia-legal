@@ -1,6 +1,11 @@
+import { syncDefaultOrganizationMembership } from "@/lib/auth/org-membership";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { UserRole } from "@/lib/auth/roles";
 import { isUserRole } from "@/lib/auth/roles";
+
+function resolveProfileRole(role: string): UserRole {
+  return isUserRole(role) ? role : "assistant";
+}
 
 export interface StudioUserProfile {
   id: string;
@@ -57,23 +62,10 @@ export async function createStudioUser(input: {
     throw new Error(profileError?.message ?? "Usuario creado sin perfil.");
   }
 
-  const { data: defaultOrg } = await supabase
-    .from("organizations")
-    .select("id")
-    .eq("slug", "default")
-    .maybeSingle();
-
-  if (defaultOrg?.id) {
-    await supabase.from("organization_members").upsert(
-      {
-        organization_id: defaultOrg.id,
-        user_id: authData.user.id,
-        role: input.role === "admin" ? "owner" : "member",
-        is_active: true,
-      },
-      { onConflict: "organization_id,user_id" },
-    );
-  }
+  await syncDefaultOrganizationMembership(supabase, authData.user.id, {
+    profileRole: resolveProfileRole(profile.role),
+    isActive: profile.is_active,
+  });
 
   return profile;
 }
@@ -111,6 +103,13 @@ export async function updateStudioUser(
 
   if (error || !data) {
     throw new Error(error?.message ?? "No se pudo actualizar el usuario.");
+  }
+
+  if (patch.role !== undefined || patch.is_active !== undefined) {
+    await syncDefaultOrganizationMembership(supabase, userId, {
+      profileRole: resolveProfileRole(data.role),
+      isActive: data.is_active,
+    });
   }
 
   return data;
