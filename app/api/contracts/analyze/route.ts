@@ -3,6 +3,7 @@ import {
   runContractAnalysis,
   ContractAnalysisError,
 } from "@/lib/contracts/run-analysis";
+import { requirePermission } from "@/lib/auth/require-permission";
 import { GroqRateLimitError } from "@/lib/groq/errors";
 import type { AnalyzeContractResponse } from "@/lib/contracts/analysis";
 import type { ApiErrorResponse } from "@/lib/supabase/types";
@@ -22,6 +23,7 @@ export async function POST(
   request: NextRequest,
 ): Promise<NextResponse<AnalyzeContractResponse | ApiErrorResponse>> {
   try {
+    await requirePermission("run_audit");
     const body: unknown = await request.json();
 
     if (typeof body !== "object" || body === null) {

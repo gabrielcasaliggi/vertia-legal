@@ -14,6 +14,7 @@ function daysUntil(isoDate: string): number {
 
 export async function gatherNotificationDigest(
   config: NotificationConfig,
+  organizationId?: string | null,
 ): Promise<NotificationDigest> {
   const supabase = createServerSupabaseClient();
 
@@ -22,7 +23,7 @@ export async function gatherNotificationDigest(
     expirationHorizon.getDate() + config.expirationHorizonDays,
   );
 
-  const { data: contractRows, error: contractsError } = await supabase
+  let contractsQuery = supabase
     .from("legal_contracts")
     .select("id, file_name, client_name, expires_at")
     .is("archived_at", null)
@@ -30,6 +31,12 @@ export async function gatherNotificationDigest(
     .lte("expires_at", expirationHorizon.toISOString())
     .order("expires_at", { ascending: true })
     .limit(30);
+
+  if (organizationId) {
+    contractsQuery = contractsQuery.eq("organization_id", organizationId);
+  }
+
+  const { data: contractRows, error: contractsError } = await contractsQuery;
 
   if (contractsError) {
     throw new Error(contractsError.message);
@@ -46,7 +53,7 @@ export async function gatherNotificationDigest(
   const taskHorizon = new Date();
   taskHorizon.setDate(taskHorizon.getDate() + config.taskHorizonDays);
 
-  const { data: taskRows, error: tasksError } = await supabase
+  let tasksQuery = supabase
     .from("contract_tasks")
     .select("id, title, assignee_name, due_at, priority, status, contract_id")
     .in("status", ["pending", "in_progress"])
@@ -54,6 +61,12 @@ export async function gatherNotificationDigest(
     .lte("due_at", taskHorizon.toISOString())
     .order("due_at", { ascending: true })
     .limit(40);
+
+  if (organizationId) {
+    tasksQuery = tasksQuery.eq("organization_id", organizationId);
+  }
+
+  const { data: taskRows, error: tasksError } = await tasksQuery;
 
   if (tasksError) {
     throw new Error(tasksError.message);
@@ -75,7 +88,7 @@ export async function gatherNotificationDigest(
     obligationHorizon.getDate() + config.obligationHorizonDays,
   );
 
-  const { data: obligationRows, error: obligationsError } = await supabase
+  let obligationsQuery = supabase
     .from("contract_obligations")
     .select("id, title, contract_id, due_at, status, obligation_type")
     .neq("status", "completed")
@@ -83,6 +96,12 @@ export async function gatherNotificationDigest(
     .lte("due_at", obligationHorizon.toISOString())
     .order("due_at", { ascending: true })
     .limit(40);
+
+  if (organizationId) {
+    obligationsQuery = obligationsQuery.eq("organization_id", organizationId);
+  }
+
+  const { data: obligationRows, error: obligationsError } = await obligationsQuery;
 
   if (obligationsError) {
     throw new Error(obligationsError.message);
@@ -95,10 +114,16 @@ export async function gatherNotificationDigest(
   const contractMeta = new Map<string, { file_name: string; client_name: string }>();
 
   if (contractIds.length > 0) {
-    const { data: metaRows } = await supabase
+    let metaQuery = supabase
       .from("legal_contracts")
       .select("id, file_name, client_name")
       .in("id", contractIds);
+
+    if (organizationId) {
+      metaQuery = metaQuery.eq("organization_id", organizationId);
+    }
+
+    const { data: metaRows } = await metaQuery;
 
     for (const row of metaRows ?? []) {
       contractMeta.set(row.id, {

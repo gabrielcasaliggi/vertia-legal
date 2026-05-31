@@ -1,5 +1,6 @@
 import { computeDaysUntilExpiry } from "@/lib/contracts/lifecycle";
 import type { Client360Summary, Matter, StudioClient } from "@/lib/clients/studio-clients";
+import { getCurrentOrganizationId } from "@/lib/auth/organization";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { ContractListItem } from "@/lib/supabase/types";
 
@@ -11,10 +12,15 @@ export interface Client360Payload {
 
 export async function listStudioClients(): Promise<StudioClient[]> {
   const supabase = createServerSupabaseClient();
-  const { data, error } = await supabase
-    .from("studio_clients")
-    .select("*")
-    .order("name", { ascending: true });
+  const organizationId = await getCurrentOrganizationId();
+
+  let query = supabase.from("studio_clients").select("*").order("name", { ascending: true });
+
+  if (organizationId) {
+    query = query.eq("organization_id", organizationId);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw new Error(error.message);
@@ -25,12 +31,14 @@ export async function listStudioClients(): Promise<StudioClient[]> {
 
 export async function getClient360(clientId: string): Promise<Client360Payload> {
   const supabase = createServerSupabaseClient();
+  const organizationId = await getCurrentOrganizationId();
 
-  const { data: client, error: clientError } = await supabase
-    .from("studio_clients")
-    .select("*")
-    .eq("id", clientId)
-    .maybeSingle();
+  let clientQuery = supabase.from("studio_clients").select("*").eq("id", clientId);
+  if (organizationId) {
+    clientQuery = clientQuery.eq("organization_id", organizationId);
+  }
+
+  const { data: client, error: clientError } = await clientQuery.maybeSingle();
 
   if (clientError) {
     throw new Error(clientError.message);
@@ -40,16 +48,22 @@ export async function getClient360(clientId: string): Promise<Client360Payload> 
     throw new Error("Cliente no encontrado.");
   }
 
+  let contractsQuery = supabase
+    .from("legal_contracts")
+    .select(
+      "id, file_name, client_name, folder_name, status, file_hash, created_at, starts_at, expires_at, contract_type, party_a, party_b, lifecycle_status",
+    )
+    .or(`client_id.eq.${clientId},client_name.eq.${client.name}`)
+    .is("archived_at", null)
+    .order("created_at", { ascending: false });
+
+  if (organizationId) {
+    contractsQuery = contractsQuery.eq("organization_id", organizationId);
+  }
+
   const [{ data: matters }, { data: contracts }, { count: taskCount }] = await Promise.all([
     supabase.from("matters").select("*").eq("client_id", clientId).order("name"),
-    supabase
-      .from("legal_contracts")
-      .select(
-        "id, file_name, client_name, folder_name, status, file_hash, created_at, starts_at, expires_at, contract_type, party_a, party_b, lifecycle_status",
-      )
-      .or(`client_id.eq.${clientId},client_name.eq.${client.name}`)
-      .is("archived_at", null)
-      .order("created_at", { ascending: false }),
+    contractsQuery,
     supabase
       .from("contract_tasks")
       .select("id", { count: "exact", head: true })
@@ -90,20 +104,29 @@ export async function getClient360(clientId: string): Promise<Client360Payload> 
   };
 }
 
-export async function findOrCreateClientByName(name: string): Promise<string | null> {
+export async function findOrCreateClientByName(
+  name: string,
+  organizationId?: string | null,
+): Promise<string | null> {
   const trimmed = name.trim();
   if (!trimmed || trimmed === "General") {
     return null;
   }
 
   const supabase = createServerSupabaseClient();
+  const orgId = organizationId ?? (await getCurrentOrganizationId());
 
-  const { data: existing } = await supabase
+  let existingQuery = supabase
     .from("studio_clients")
     .select("id")
     .ilike("name", trimmed)
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
+
+  if (orgId) {
+    existingQuery = existingQuery.eq("organization_id", orgId);
+  }
+
+  const { data: existing } = await existingQuery.maybeSingle();
 
   if (existing?.id) {
     return existing.id;
@@ -111,7 +134,10 @@ export async function findOrCreateClientByName(name: string): Promise<string | n
 
   const { data: created, error } = await supabase
     .from("studio_clients")
-    .insert({ name: trimmed })
+    .insert({
+      name: trimmed,
+      organization_id: orgId,
+    })
     .select("id")
     .single();
 

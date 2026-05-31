@@ -1,4 +1,5 @@
 import { getActorDisplayName } from "@/lib/auth/actor";
+import { getCurrentOrganizationId } from "@/lib/auth/organization";
 import {
   activityActionLabel,
   type ActivityLogEntry,
@@ -13,6 +14,7 @@ export async function logActivity(input: LogActivityInput): Promise<void> {
   const supabase = createServerSupabaseClient();
   const actorName =
     input.actorName?.trim() || (await getActorDisplayName());
+  const organizationId = await getCurrentOrganizationId();
 
   const { error } = await supabase.from("activity_log").insert({
     action: input.action,
@@ -21,6 +23,7 @@ export async function logActivity(input: LogActivityInput): Promise<void> {
     entity_label: input.entityLabel ?? null,
     actor_name: actorName,
     metadata: input.metadata ?? null,
+    organization_id: organizationId,
   });
 
   if (error) {
@@ -30,12 +33,19 @@ export async function logActivity(input: LogActivityInput): Promise<void> {
 
 export async function fetchRecentActivity(limit = 30): Promise<ActivityLogEntry[]> {
   const supabase = createServerSupabaseClient();
+  const organizationId = await getCurrentOrganizationId();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("activity_log")
     .select("id, action, entity_type, entity_id, entity_label, actor_name, metadata, created_at")
     .order("created_at", { ascending: false })
     .limit(limit);
+
+  if (organizationId) {
+    query = query.eq("organization_id", organizationId);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw new Error(error.message);

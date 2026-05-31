@@ -5,6 +5,8 @@ import {
   lifecycleBadgeClass,
 } from "@/lib/contracts/lifecycle";
 import type { ContractListItem, ContractSearchMatch } from "@/lib/supabase/types";
+import { indexQualityLabel } from "@/lib/pdf/index-quality";
+import type { IndexQuality } from "@/lib/pdf/index-quality";
 
 interface ContractSummarySource {
   file_name?: string;
@@ -17,6 +19,7 @@ interface ContractSummarySource {
   starts_at?: string | null;
   expires_at?: string | null;
   lifecycle_status?: LifecycleStatus;
+  index_quality?: IndexQuality;
   contract_metadata?: { monto?: number | null; moneda?: string | null } | null;
 }
 
@@ -68,6 +71,8 @@ export function ContractSummaryCard({
   const lifecycle = contract.lifecycle_status ?? "unknown";
   const displayName = resolveDisplayName(contract);
   const metadata = resolveMetadata(contract);
+  const indexQuality =
+    "index_quality" in contract ? contract.index_quality : undefined;
 
   return (
     <div
@@ -88,6 +93,12 @@ export function ContractSummaryCard({
           {LIFECYCLE_LABELS[lifecycle]}
         </span>
       </div>
+
+      {indexQuality === "insufficient_text" ? (
+        <p className="mt-3 rounded-corp border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs text-amber-950">
+          {indexQualityLabel(indexQuality)}
+        </p>
+      ) : null}
 
       <dl className={`mt-4 grid gap-3 text-sm ${compact ? "grid-cols-1" : "md:grid-cols-2"}`}>
         <div>

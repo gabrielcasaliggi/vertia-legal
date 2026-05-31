@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logActivity } from "@/lib/contracts/activity-log";
 import {
+  assertContractInOrganization,
+  requireOrganizationScope,
+} from "@/lib/auth/tenant-scope";
+import { requirePermission } from "@/lib/auth/require-permission";
+import {
   buildPersistedUpdate,
   parseContractUpdateBody,
 } from "@/lib/contracts/contract-update";
@@ -22,31 +27,41 @@ export async function GET(
   _request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ): Promise<NextResponse<{ contract: LegalContract } | ApiErrorResponse>> {
-  const { id } = await context.params;
-  const supabase = createServerSupabaseClient();
+  try {
+    const organizationId = await requireOrganizationScope();
+    const { id } = await context.params;
+    const supabase = createServerSupabaseClient();
 
-  const { data, error } = await supabase
-    .from("legal_contracts")
-    .select("*")
-    .eq("id", id)
-    .maybeSingle();
+    const { data, error } = await supabase
+      .from("legal_contracts")
+      .select("*")
+      .eq("id", id)
+      .eq("organization_id", organizationId)
+      .maybeSingle();
 
-  if (error) {
-    return jsonError("No se pudo cargar el contrato.", 500, error.message);
+    if (error) {
+      return jsonError("No se pudo cargar el contrato.", 500, error.message);
+    }
+
+    if (!data) {
+      return jsonError("Contrato no encontrado.", 404);
+    }
+
+    return NextResponse.json({ contract: data });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "No autorizado.";
+    return jsonError(message, 403);
   }
-
-  if (!data) {
-    return jsonError("Contrato no encontrado.", 404);
-  }
-
-  return NextResponse.json({ contract: data });
 }
 
 export async function PATCH(
   request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ): Promise<NextResponse<{ contract: LegalContract } | ApiErrorResponse>> {
-  const { id } = await context.params;
+  try {
+    await requirePermission("edit_contract_metadata");
+    const organizationId = await requireOrganizationScope();
+    const { id } = await context.params;
 
   let body: unknown;
   try {
@@ -56,11 +71,13 @@ export async function PATCH(
   }
 
   const supabase = createServerSupabaseClient();
+  await assertContractInOrganization(supabase, id, organizationId);
 
   const { data: current, error: fetchError } = await supabase
     .from("legal_contracts")
     .select("*")
     .eq("id", id)
+    .eq("organization_id", organizationId)
     .maybeSingle();
 
   if (fetchError) {
@@ -121,22 +138,31 @@ export async function PATCH(
   });
 
   return NextResponse.json({ contract: data });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "No autorizado.";
+    const status = message.includes("permiso") ? 403 : 500;
+    return jsonError(message, status);
+  }
 }
 
 export async function DELETE(
   _request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ): Promise<NextResponse<{ contract: LegalContract } | ApiErrorResponse>> {
-  const { id } = await context.params;
-  const supabase = createServerSupabaseClient();
+  try {
+    await requirePermission("archive_contracts");
+    const organizationId = await requireOrganizationScope();
+    const { id } = await context.params;
+    const supabase = createServerSupabaseClient();
 
-  const { data, error } = await supabase
-    .from("legal_contracts")
-    .update({ archived_at: new Date().toISOString() })
-    .eq("id", id)
-    .is("archived_at", null)
-    .select("*")
-    .single();
+    const { data, error } = await supabase
+      .from("legal_contracts")
+      .update({ archived_at: new Date().toISOString() })
+      .eq("id", id)
+      .eq("organization_id", organizationId)
+      .is("archived_at", null)
+      .select("*")
+      .single();
 
   if (error || !data) {
     return jsonError("No se pudo archivar el contrato.", 500, error?.message);
@@ -150,4 +176,9 @@ export async function DELETE(
   });
 
   return NextResponse.json({ contract: data });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "No autorizado.";
+    const status = message.includes("permiso") ? 403 : 500;
+    return jsonError(message, status);
+  }
 }

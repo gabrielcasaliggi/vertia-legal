@@ -4,7 +4,11 @@ import {
   buildClientPortfolioReportHtml,
   buildClientPortfolioReportMarkdown,
 } from "@/lib/contracts/export";
+import { buildReportBranding } from "@/lib/contracts/report-branding";
 import { getClient360 } from "@/lib/clients/client-360-service";
+import { requirePermission } from "@/lib/auth/require-permission";
+import { requireOrganizationScope } from "@/lib/auth/tenant-scope";
+import { getOrganizationSettings } from "@/lib/organizations/settings";
 import type { ApiErrorResponse } from "@/lib/supabase/types";
 
 export async function GET(
@@ -12,9 +16,13 @@ export async function GET(
   context: { params: Promise<{ id: string }> },
 ): Promise<NextResponse<ApiErrorResponse | BodyInit>> {
   try {
+    await requirePermission("export_reports");
+    const organizationId = await requireOrganizationScope();
     const { id } = await context.params;
     const format = request.nextUrl.searchParams.get("format") ?? "md";
     const payload = await getClient360(id);
+    const settings = await getOrganizationSettings(organizationId);
+    const branding = buildReportBranding(settings);
 
     const markdown = buildClientPortfolioReportMarkdown({
       client: payload.summary.client,
@@ -37,7 +45,11 @@ export async function GET(
     });
 
     if (format === "html") {
-      const html = buildClientPortfolioReportHtml(markdown, payload.summary.client.name);
+      const html = buildClientPortfolioReportHtml(
+        markdown,
+        payload.summary.client.name,
+        branding,
+      );
       return new NextResponse(html, {
         status: 200,
         headers: {
@@ -56,7 +68,11 @@ export async function GET(
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Error al exportar.";
-    const status = message.includes("no encontrado") ? 404 : 500;
+    const status = message.includes("permiso")
+      ? 403
+      : message.includes("no encontrado")
+        ? 404
+        : 500;
     return NextResponse.json({ error: message }, { status });
   }
 }

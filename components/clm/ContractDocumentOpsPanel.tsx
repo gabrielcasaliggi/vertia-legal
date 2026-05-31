@@ -56,7 +56,11 @@ export function ContractDocumentOpsPanel({
       if (!response.ok) {
         throw new Error(payload.details ?? payload.error ?? "Error al reindexar.");
       }
-      setMessage(`Texto reindexado (${payload.extractedLength} caracteres).`);
+      setMessage(
+        payload.index_warning
+          ? `Texto reindexado (${payload.extractedLength} caracteres). ${payload.index_warning}`
+          : `Texto reindexado (${payload.extractedLength} caracteres).`,
+      );
       onUpdated?.();
     } catch (reindexError) {
       setError(
@@ -86,7 +90,11 @@ export function ContractDocumentOpsPanel({
       if (!response.ok) {
         throw new Error(payload.details ?? payload.error ?? "Error al reemplazar.");
       }
-      setMessage(`Nueva versión v${payload.version_number} cargada.`);
+      setMessage(
+        payload.index_warning
+          ? `Nueva versión v${payload.version_number} cargada. ${payload.index_warning}`
+          : `Nueva versión v${payload.version_number} cargada.`,
+      );
       await loadVersions();
       onUpdated?.();
     } catch (replaceError) {

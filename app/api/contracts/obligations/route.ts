@@ -5,6 +5,8 @@ import {
   type ObligationListItem,
   type ObligationType,
 } from "@/lib/contracts/obligations";
+import { requirePermission } from "@/lib/auth/require-permission";
+import { requireOrganizationScope } from "@/lib/auth/tenant-scope";
 import { refreshOverdueObligationStatuses } from "@/lib/contracts/obligations-service";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { ApiErrorResponse } from "@/lib/supabase/types";
@@ -39,13 +41,16 @@ export async function GET(
 
   await refreshOverdueObligationStatuses(contractId ?? undefined);
 
-  const supabase = createServerSupabaseClient();
+  try {
+    const organizationId = await requireOrganizationScope();
+    const supabase = createServerSupabaseClient();
   const horizon = new Date();
   horizon.setDate(horizon.getDate() + (Number.isNaN(horizonDays) ? 90 : horizonDays));
 
   let query = supabase
     .from("contract_obligations")
     .select("*")
+    .eq("organization_id", organizationId)
     .neq("status", "completed")
     .order("due_at", { ascending: true, nullsFirst: false })
     .limit(40);
@@ -107,6 +112,10 @@ export async function GET(
     .filter((item): item is ObligationListItem => item !== null);
 
   return NextResponse.json({ obligations });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "No autorizado.";
+    return jsonError(message, 403);
+  }
 }
 
 export async function POST(
@@ -146,11 +155,16 @@ export async function POST(
 
   const supabase = createServerSupabaseClient();
 
-  const { data: contract, error: contractError } = await supabase
-    .from("legal_contracts")
-    .select("id, file_name, client_name, archived_at")
-    .eq("id", contractId)
-    .maybeSingle();
+  try {
+    await requirePermission("edit_contract_metadata");
+    const organizationId = await requireOrganizationScope();
+
+    const { data: contract, error: contractError } = await supabase
+      .from("legal_contracts")
+      .select("id, file_name, client_name, archived_at, organization_id")
+      .eq("id", contractId)
+      .eq("organization_id", organizationId)
+      .maybeSingle();
 
   if (contractError || !contract || contract.archived_at) {
     return jsonError("Contrato no encontrado o archivado.", 404);
@@ -160,6 +174,7 @@ export async function POST(
     .from("contract_obligations")
     .insert({
       contract_id: contractId,
+      organization_id: organizationId,
       title,
       due_at: dueAt,
       obligation_type: obligationType,
@@ -181,4 +196,9 @@ export async function POST(
   };
 
   return NextResponse.json({ obligation }, { status: 201 });
+  } catch (postError) {
+    const message = postError instanceof Error ? postError.message : "Error interno.";
+    const status = message.includes("permiso") ? 403 : 500;
+    return jsonError(message, status);
+  }
 }

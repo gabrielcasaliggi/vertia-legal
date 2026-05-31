@@ -10,6 +10,7 @@ import type { ProcessingPhase } from "@/lib/contracts/pipeline-phases";
 import type { TaskPriority, TaskStatus } from "@/lib/contracts/tasks";
 import type { MatterStatus, MatterType } from "@/lib/clients/studio-clients";
 import type { UserRole } from "@/lib/auth/roles";
+import type { IndexQuality } from "@/lib/pdf/index-quality";
 
 export type ContractStatus = "indexed" | "analyzed" | "failed" | "pending_analysis";
 
@@ -56,6 +57,7 @@ export interface Database {
           matter_id: string | null;
           document_category: DocumentCategory | null;
           organization_id: string | null;
+          index_quality: IndexQuality;
           created_at: string;
         };
         Insert: {
@@ -83,6 +85,7 @@ export interface Database {
           matter_id?: string | null;
           document_category?: DocumentCategory | null;
           organization_id?: string | null;
+          index_quality?: IndexQuality;
           created_at?: string;
         };
         Update: {
@@ -110,6 +113,7 @@ export interface Database {
           matter_id?: string | null;
           document_category?: DocumentCategory | null;
           organization_id?: string | null;
+          index_quality?: IndexQuality;
           created_at?: string;
         };
         Relationships: [];
@@ -123,6 +127,7 @@ export interface Database {
           responsible_name: string | null;
           contact_email: string | null;
           notes: string | null;
+          organization_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -134,6 +139,7 @@ export interface Database {
           responsible_name?: string | null;
           contact_email?: string | null;
           notes?: string | null;
+          organization_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -145,6 +151,7 @@ export interface Database {
           responsible_name?: string | null;
           contact_email?: string | null;
           notes?: string | null;
+          organization_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -192,6 +199,7 @@ export interface Database {
           entity_label: string | null;
           actor_name: string;
           metadata: Json | null;
+          organization_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -202,6 +210,7 @@ export interface Database {
           entity_label?: string | null;
           actor_name?: string;
           metadata?: Json | null;
+          organization_id?: string | null;
           created_at?: string;
         };
         Update: {
@@ -212,6 +221,7 @@ export interface Database {
           entity_label?: string | null;
           actor_name?: string;
           metadata?: Json | null;
+          organization_id?: string | null;
           created_at?: string;
         };
         Relationships: [];
@@ -392,6 +402,11 @@ export interface Database {
           id: string;
           name: string;
           slug: string;
+          contact_email: string | null;
+          contact_phone: string | null;
+          logo_url: string | null;
+          report_disclaimer: string | null;
+          report_responsible_name: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -399,6 +414,11 @@ export interface Database {
           id?: string;
           name: string;
           slug: string;
+          contact_email?: string | null;
+          contact_phone?: string | null;
+          logo_url?: string | null;
+          report_disclaimer?: string | null;
+          report_responsible_name?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -406,6 +426,11 @@ export interface Database {
           id?: string;
           name?: string;
           slug?: string;
+          contact_email?: string | null;
+          contact_phone?: string | null;
+          logo_url?: string | null;
+          report_disclaimer?: string | null;
+          report_responsible_name?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -507,6 +532,7 @@ export interface Database {
           obligation_type: ObligationType;
           status: ObligationStatus;
           source: ObligationSource;
+          organization_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -518,6 +544,7 @@ export interface Database {
           obligation_type?: ObligationType;
           status?: ObligationStatus;
           source?: ObligationSource;
+          organization_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -529,6 +556,7 @@ export interface Database {
           obligation_type?: ObligationType;
           status?: ObligationStatus;
           source?: ObligationSource;
+          organization_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -564,6 +592,8 @@ export interface ContractIndexResponse {
   starts_at: string | null;
   expires_at: string | null;
   lifecycle_status: LifecycleStatus;
+  index_quality: IndexQuality;
+  index_warning?: string | null;
   created_at: string;
 }
 

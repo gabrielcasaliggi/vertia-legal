@@ -10,6 +10,7 @@ import {
 } from "@/lib/contracts/hybrid-search";
 import { riesgoToScore, type RiesgoNivel } from "@/lib/contracts/search-intelligence";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { requireOrganizationScope } from "@/lib/auth/tenant-scope";
 import type { ApiErrorResponse, ContractListItem, ContractStatus } from "@/lib/supabase/types";
 
 export interface ContractSearchResponse {
@@ -88,64 +89,72 @@ export async function GET(
     );
   }
 
-  const supabase = createServerSupabaseClient();
+  try {
+    const organizationId = await requireOrganizationScope();
+    const supabase = createServerSupabaseClient();
 
-  let dbQuery = supabase
-    .from("legal_contracts")
-    .select(SELECT_COLUMNS)
-    .is("archived_at", null);
+    let dbQuery = supabase
+      .from("legal_contracts")
+      .select(SELECT_COLUMNS)
+      .eq("organization_id", organizationId)
+      .is("archived_at", null);
 
-  if (hasTextQuery(filters)) {
-    dbQuery = dbQuery.textSearch("search_vector", filters.q!, {
-      type: "websearch",
-      config: "spanish",
+    if (hasTextQuery(filters)) {
+      dbQuery = dbQuery.textSearch("search_vector", filters.q!, {
+        type: "websearch",
+        config: "spanish",
+      });
+    }
+
+    dbQuery = applyStructuralFilters(dbQuery, filters);
+
+    const orderColumn = filters.sort === "recent" ? "created_at" : "created_at";
+    const { data, error } = await dbQuery
+      .order(orderColumn, { ascending: false })
+      .limit(50);
+
+    if (error) {
+      return jsonError("Error en búsqueda.", 500, error.message);
+    }
+
+    const rows = (data ?? []) as ContractRowForSearch[];
+    const matches = runHybridSearchPipeline(rows, filters);
+
+    const contracts: ContractListItem[] = rows.map(
+      ({ extracted_text: _extracted, status, ...contract }) => ({
+        ...contract,
+        status: status as ContractStatus,
+      }),
+    );
+
+    const topRiesgo = matches[0]?.riesgo ?? "BAJO";
+    const heatmapScore =
+      matches.length > 0
+        ? Math.round(
+            matches.reduce((sum, match) => sum + riesgoToScore(match.riesgo), 0) /
+              matches.length,
+          )
+        : 0;
+
+    return NextResponse.json({
+      query: filters.q,
+      mode: resolveSearchMode(filters),
+      matches,
+      contracts,
+      heatmap: {
+        score: heatmapScore,
+        riesgo: topRiesgo,
+        coincidencias: matches.length,
+      },
+      summary: {
+        total_contracts: contracts.length,
+        total_matches: matches.length,
+        filters_applied: describeAppliedFilters(filters),
+      },
     });
+  } catch (scopeError) {
+    const message =
+      scopeError instanceof Error ? scopeError.message : "Organización no disponible.";
+    return jsonError(message, 403);
   }
-
-  dbQuery = applyStructuralFilters(dbQuery, filters);
-
-  const orderColumn = filters.sort === "recent" ? "created_at" : "created_at";
-  const { data, error } = await dbQuery
-    .order(orderColumn, { ascending: false })
-    .limit(50);
-
-  if (error) {
-    return jsonError("Error en búsqueda.", 500, error.message);
-  }
-
-  const rows = (data ?? []) as ContractRowForSearch[];
-  const matches = runHybridSearchPipeline(rows, filters);
-
-  const contracts: ContractListItem[] = rows.map(
-    ({ extracted_text: _extracted, status, ...contract }) => ({
-      ...contract,
-      status: status as ContractStatus,
-    }),
-  );
-
-  const topRiesgo = matches[0]?.riesgo ?? "BAJO";
-  const heatmapScore =
-    matches.length > 0
-      ? Math.round(
-          matches.reduce((sum, match) => sum + riesgoToScore(match.riesgo), 0) /
-            matches.length,
-        )
-      : 0;
-
-  return NextResponse.json({
-    query: filters.q,
-    mode: resolveSearchMode(filters),
-    matches,
-    contracts,
-    heatmap: {
-      score: heatmapScore,
-      riesgo: topRiesgo,
-      coincidencias: matches.length,
-    },
-    summary: {
-      total_contracts: contracts.length,
-      total_matches: matches.length,
-      filters_applied: describeAppliedFilters(filters),
-    },
-  });
 }

@@ -14,3 +14,5 @@ export function isUserRole(value: string): value is UserRole {
 export function canManageUsers(role: UserRole): boolean {
   return role === "admin";
 }
+
+export { hasPermission, type Permission } from "@/lib/auth/permissions";

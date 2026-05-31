@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { reindexContractFromStorage } from "@/lib/contracts/reindex-contract";
 import { logActivity } from "@/lib/contracts/activity-log";
+import { requirePermission } from "@/lib/auth/require-permission";
 import { getCurrentProfile } from "@/lib/auth/session";
 import { jsonError, jsonUnexpectedError } from "@/lib/http/json-error";
 import type { ApiErrorResponse } from "@/lib/supabase/types";
-import { LocalExtractionError } from "@/lib/pdf/extract-local";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -17,9 +17,10 @@ export async function POST(
   _request: NextRequest,
   context: RouteContext,
 ): Promise<
-  NextResponse<{ extractedLength: number } | ApiErrorResponse>
+  NextResponse<{ extractedLength: number; index_quality: string; index_warning: string | null } | ApiErrorResponse>
 > {
   try {
+    await requirePermission("reindex_contract");
     const { id } = await context.params;
     const profile = await getCurrentProfile();
     const result = await reindexContractFromStorage(id);
@@ -35,8 +36,10 @@ export async function POST(
 
     return NextResponse.json(result);
   } catch (error) {
-    if (error instanceof LocalExtractionError) {
-      return jsonError("No se pudo reindexar el PDF.", 422, error.message);
+    const message = error instanceof Error ? error.message : "Error al reindexar.";
+    const status = message.includes("permiso") ? 403 : 500;
+    if (status === 403) {
+      return jsonError(message, 403);
     }
     return jsonUnexpectedError("contracts/reindex", error, "Error al reindexar.");
   }

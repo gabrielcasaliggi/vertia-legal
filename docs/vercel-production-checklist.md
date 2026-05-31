@@ -3,7 +3,7 @@
 ## Antes del go-live
 
 - [ ] Proyecto Supabase **productivo** separado del local
-- [ ] Migraciones `001`–`014` aplicadas en orden
+- [ ] Migraciones `001`–`016` aplicadas en orden
 - [ ] Bucket `contracts` creado (privado)
 - [ ] Usuario admin creado: `npm run create-admin`
 - [ ] Repo conectado a Vercel, branch `main` en Production
@@ -37,7 +37,7 @@
 
 ## Límites operativos (Vercel Hobby)
 
-- PDF **digital** con texto copiable
+- PDF **digital** con texto copiable (escaneados quedan marcados como `insufficient_text`)
 - Tamaño máximo **4 MB**
 - OCR server-side **desactivado** por defecto
 - Auditoría IA y upload: hasta **60 s** por función

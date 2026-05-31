@@ -8,6 +8,7 @@ import {
 } from "@/lib/notifications/config";
 import { gatherNotificationDigest } from "@/lib/notifications/gather-digest";
 import { sendNotificationDigest } from "@/lib/notifications/send-digest";
+import { getCurrentOrganizationId } from "@/lib/auth/organization";
 import type { ApiErrorResponse } from "@/lib/supabase/types";
 
 function jsonError(error: string, status: number, details?: string) {
@@ -48,7 +49,8 @@ export async function GET(
 
   try {
     const config = getNotificationConfig();
-    const digest = await gatherNotificationDigest(config);
+    const organizationId = await getCurrentOrganizationId();
+    const digest = await gatherNotificationDigest(config, organizationId);
 
     return NextResponse.json({
       digest,
@@ -90,7 +92,8 @@ export async function POST(
   }
 
   try {
-    const summary = await sendNotificationDigest({ force, dryRun });
+    const organizationId = await getCurrentOrganizationId();
+    const summary = await sendNotificationDigest({ force, dryRun, organizationId });
     return NextResponse.json({ ...summary, via: auth.via });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Error interno.";

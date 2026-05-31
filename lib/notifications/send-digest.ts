@@ -79,13 +79,14 @@ async function recordDigestSent(
 export interface SendDigestOptions {
   force?: boolean;
   dryRun?: boolean;
+  organizationId?: string | null;
 }
 
 export async function sendNotificationDigest(
   options: SendDigestOptions = {},
 ): Promise<DigestSendSummary> {
   const config = getNotificationConfig();
-  const digest = await gatherNotificationDigest(config);
+  const digest = await gatherNotificationDigest(config, options.organizationId);
   const recipients = await resolveRecipients(config);
   const smtpConfigured = isSmtpConfigured(config);
 

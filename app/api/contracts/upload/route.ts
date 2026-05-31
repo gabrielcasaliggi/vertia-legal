@@ -6,9 +6,11 @@ import { logActivity } from "@/lib/contracts/activity-log";
 import { isDocumentCategory } from "@/lib/contracts/document-categories";
 import { findOrCreateClientByName } from "@/lib/clients/client-360-service";
 import { createContractVersion } from "@/lib/contracts/contract-versions";
-import { getCurrentOrganizationId } from "@/lib/auth/organization";
+import { requirePermission } from "@/lib/auth/require-permission";
 import { getCurrentProfile } from "@/lib/auth/session";
+import { requireOrganizationScope } from "@/lib/auth/tenant-scope";
 import { buildContractStoragePath } from "@/lib/storage/contract-path";
+import { extractTextWithQuality } from "@/lib/pdf/index-quality";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { ApiErrorResponse, ContractIndexResponse } from "@/lib/supabase/types";
 
@@ -78,6 +80,8 @@ export async function POST(
   let contractId: string | null = null;
 
   try {
+    await requirePermission("upload_contracts");
+    const organizationId = await requireOrganizationScope();
     const formData = await request.formData();
     const fileEntry = formData.get("file");
     const clientName =
@@ -119,17 +123,15 @@ export async function POST(
 
     const fileBuffer = Buffer.from(await fileEntry.arrayBuffer());
     contractId = randomUUID();
-    const organizationId = await getCurrentOrganizationId();
     const profile = await getCurrentProfile();
     const storagePath = buildContractStoragePath(contractId, organizationId, 1);
 
     const fileHash = createHash("sha256").update(fileBuffer).digest("hex");
-    const { extractTextLocally } = await import("@/lib/pdf/extract-local");
-    const extractedText = await extractTextLocally(fileBuffer);
-    const extractedMetadata = extractContractMetadataFromText(extractedText);
+    const extraction = await extractTextWithQuality(fileBuffer);
+    const extractedMetadata = extractContractMetadataFromText(extraction.text);
 
     const supabase = createServerSupabaseClient();
-    const linkedClientId = await findOrCreateClientByName(clientName);
+    const linkedClientId = await findOrCreateClientByName(clientName, organizationId);
 
     const { data: insertedContract, error: insertError } = await supabase
       .from("legal_contracts")
@@ -138,7 +140,8 @@ export async function POST(
         file_name: fileEntry.name,
         storage_path: storagePath,
         file_hash: fileHash,
-        extracted_text: extractedText,
+        extracted_text: extraction.text,
+        index_quality: extraction.quality,
         client_name: clientName,
         folder_name: folderName,
         client_id: linkedClientId,
@@ -218,6 +221,8 @@ export async function POST(
         lifecycle_status: insertedContract.lifecycle_status,
         status: "indexed",
         processing_phase: "completed",
+        index_quality: extraction.quality,
+        index_warning: extraction.warning,
         created_at: insertedContract.created_at,
       },
       { status: 201 },
@@ -227,19 +232,15 @@ export async function POST(
       await updateProcessingPhase(contractId, "failed");
     }
 
-    const { LocalExtractionError: ExtractionError } = await import(
-      "@/lib/pdf/extract-local"
-    );
-
-    if (error instanceof ExtractionError) {
-      if (contractId) {
-        await cleanupContractRecord(contractId);
-      }
-      return jsonError("No se pudo indexar el PDF.", 422, error.message);
-    }
-
     const message =
       error instanceof Error ? error.message : "Error interno del servidor.";
+    if (message.includes("permiso")) {
+      return jsonError(message, 403);
+    }
+    if (message.includes("organización")) {
+      return jsonError(message, 403);
+    }
+
     console.error("[contracts/upload] Indexing error:", message);
     return jsonError("Error en la indexación del contrato.", 500, message);
   }

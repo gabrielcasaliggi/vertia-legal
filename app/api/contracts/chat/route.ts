@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { logActivity } from "@/lib/contracts/activity-log";
 import { persistContractAiQuery } from "@/lib/contracts/contract-ai-queries";
 import { getCurrentOrganizationId } from "@/lib/auth/organization";
+import { requirePermission } from "@/lib/auth/require-permission";
 import { getCurrentProfile } from "@/lib/auth/session";
+import { requireOrganizationScope } from "@/lib/auth/tenant-scope";
 import {
   runContractChat,
   type AssistedQueryMode,
@@ -57,6 +59,8 @@ export async function POST(
   >
 > {
   try {
+    await requirePermission("run_assisted_query");
+    const organizationId = await requireOrganizationScope();
     const body: unknown = await request.json();
 
     if (typeof body !== "object" || body === null) {
@@ -87,19 +91,24 @@ export async function POST(
       const { data, error } = await supabase
         .from("legal_contracts")
         .select(
-          "file_name, extracted_text, contract_type, party_a, party_b, starts_at, expires_at, lifecycle_status, contract_metadata",
+          "file_name, extracted_text, contract_type, party_a, party_b, starts_at, expires_at, lifecycle_status, contract_metadata, index_quality",
         )
         .eq("id", contractId)
+        .eq("organization_id", organizationId)
         .maybeSingle();
 
       if (error) {
         return jsonError("No se pudo cargar el contrato.", 500, error.message);
       }
 
-      if (!data?.extracted_text) {
+      if (!data) {
+        return jsonError("Contrato no encontrado.", 404);
+      }
+
+      if (data.index_quality === "insufficient_text" || !data.extracted_text) {
         return jsonError(
-          "El contrato no tiene texto indexado para conversar.",
-          404,
+          "El contrato no tiene texto indexado suficiente para conversar. Aplicá OCR y reindexá.",
+          422,
         );
       }
 

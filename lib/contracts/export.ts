@@ -2,6 +2,7 @@ import type { ContractAnalysisResult } from "@/lib/contracts/analysis";
 import { LIFECYCLE_LABELS, formatExpiryLabel } from "@/lib/contracts/lifecycle";
 import type { LifecycleStatus } from "@/lib/contracts/lifecycle";
 import type { ContractSearchMatch } from "@/lib/contracts/search-intelligence";
+import type { ReportBranding } from "@/lib/contracts/report-branding";
 import type { ContractListItem } from "@/lib/supabase/types";
 import type { StudioClient } from "@/lib/clients/studio-clients";
 
@@ -141,12 +142,24 @@ function escapeHtml(value: string): string {
     .replace(/"/g, "&quot;");
 }
 
-export function markdownToPrintableHtml(markdown: string, title: string): string {
+export function markdownToPrintableHtml(
+  markdown: string,
+  title: string,
+  branding?: ReportBranding,
+): string {
   const generatedAt = new Date().toLocaleDateString("es-AR", {
     day: "2-digit",
     month: "long",
     year: "numeric",
   });
+  const brandName = branding?.brandName ?? "Vertia Legal";
+  const responsibleLine = branding?.responsibleName
+    ? `Responsable: ${branding.responsibleName}`
+    : null;
+  const contactLine = [branding?.contactEmail, branding?.contactPhone]
+    .filter(Boolean)
+    .join(" · ");
+  const disclaimer = branding?.disclaimer;
   const body = markdown
     .split("\n")
     .map((line) => {
@@ -288,13 +301,15 @@ export function markdownToPrintableHtml(markdown: string, title: string): string
 <div class="print-actions"><button onclick="window.print()">Imprimir / guardar PDF</button></div>
 <article class="page">
   <header class="cover">
-    <p class="brand">Vertia Legal</p>
+    <p class="brand">${escapeHtml(brandName)}</p>
     <h1>${escapeHtml(title)}</h1>
     <p class="cover-meta">Informe profesional generado el ${escapeHtml(generatedAt)}</p>
+    ${responsibleLine ? `<p class="cover-meta">${escapeHtml(responsibleLine)}</p>` : ""}
+    ${contactLine ? `<p class="cover-meta">${escapeHtml(contactLine)}</p>` : ""}
   </header>
   <main class="content">
 ${body}
-    <p class="footer">Vertia Legal — documento generado para entrega profesional.</p>
+    <p class="footer">${escapeHtml(disclaimer ?? "Vertia Legal — documento generado para entrega profesional.")}</p>
   </main>
 </article>
 </body>
@@ -361,6 +376,7 @@ export function buildClientPortfolioReportMarkdown(input: {
 export function buildClientPortfolioReportHtml(
   markdown: string,
   clientName: string,
+  branding?: ReportBranding,
 ): string {
-  return markdownToPrintableHtml(markdown, `Portfolio — ${clientName}`);
+  return markdownToPrintableHtml(markdown, `Portfolio — ${clientName}`, branding);
 }

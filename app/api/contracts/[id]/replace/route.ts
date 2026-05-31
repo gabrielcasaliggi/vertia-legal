@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { replaceContractPdf } from "@/lib/contracts/reindex-contract";
+import { requirePermission } from "@/lib/auth/require-permission";
 import { getCurrentProfile } from "@/lib/auth/session";
 import { getCurrentOrganizationId } from "@/lib/auth/organization";
 import { logActivity } from "@/lib/contracts/activity-log";
 import { jsonError, jsonUnexpectedError } from "@/lib/http/json-error";
 import type { ApiErrorResponse } from "@/lib/supabase/types";
-import { LocalExtractionError } from "@/lib/pdf/extract-local";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -20,9 +20,17 @@ export async function POST(
   request: NextRequest,
   context: RouteContext,
 ): Promise<
-  NextResponse<{ version_number: number } | ApiErrorResponse>
+  NextResponse<
+    | {
+        version_number: number;
+        index_quality: string;
+        index_warning: string | null;
+      }
+    | ApiErrorResponse
+  >
 > {
   try {
+    await requirePermission("replace_contract_pdf");
     const { id } = await context.params;
     const formData = await request.formData();
     const fileEntry = formData.get("file");
@@ -56,8 +64,10 @@ export async function POST(
 
     return NextResponse.json(result);
   } catch (error) {
-    if (error instanceof LocalExtractionError) {
-      return jsonError("No se pudo indexar el PDF reemplazado.", 422, error.message);
+    const message = error instanceof Error ? error.message : "Error al reemplazar PDF.";
+    const status = message.includes("permiso") ? 403 : 500;
+    if (status === 403) {
+      return jsonError(message, 403);
     }
     return jsonUnexpectedError("contracts/replace", error, "Error al reemplazar PDF.");
   }

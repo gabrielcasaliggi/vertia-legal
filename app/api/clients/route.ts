@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logActivity } from "@/lib/contracts/activity-log";
 import { listStudioClients } from "@/lib/clients/client-360-service";
+import { requirePermission } from "@/lib/auth/require-permission";
+import { requireOrganizationScope } from "@/lib/auth/tenant-scope";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { ApiErrorResponse } from "@/lib/supabase/types";
 
@@ -27,6 +29,8 @@ export async function POST(
   request: NextRequest,
 ): Promise<NextResponse<{ client: { id: string } } | ApiErrorResponse>> {
   try {
+    await requirePermission("manage_clients");
+    const organizationId = await requireOrganizationScope();
     const body: unknown = await request.json();
     if (typeof body !== "object" || body === null) {
       return jsonError("JSON inválido.", 400);
@@ -54,6 +58,7 @@ export async function POST(
       .from("studio_clients")
       .insert({
         name,
+        organization_id: organizationId,
         cuit: payload.cuit?.trim() || null,
         practice_area: payload.practice_area?.trim() || null,
         responsible_name: payload.responsible_name?.trim() || null,

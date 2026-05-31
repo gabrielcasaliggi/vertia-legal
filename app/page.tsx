@@ -249,7 +249,11 @@ export default function ClmWorkspacePage() {
       await loadContracts();
       await loadAlerts();
       await loadObligations();
-      router.push(`/contracts/${(payload as ContractIndexResponse).id}`);
+      const uploaded = payload as ContractIndexResponse;
+      if (uploaded.index_warning) {
+        setError(uploaded.index_warning);
+      }
+      router.push(`/contracts/${uploaded.id}`);
     } catch (uploadError) {
       const message =
         uploadError instanceof Error

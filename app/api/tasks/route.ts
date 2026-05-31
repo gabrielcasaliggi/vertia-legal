@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentProfile } from "@/lib/auth/session";
+import { requirePermission } from "@/lib/auth/require-permission";
+import { requireOrganizationScope } from "@/lib/auth/tenant-scope";
 import { logActivity } from "@/lib/contracts/activity-log";
 import type { ContractTask, TaskPriority, TaskStatus } from "@/lib/contracts/tasks";
 import { getCurrentOrganizationId } from "@/lib/auth/organization";
@@ -20,17 +22,12 @@ function cleanSearchTerm(value: string | null): string {
   return (value ?? "").trim().replace(/[,()]/g, " ");
 }
 
-function buildMineTerms(fullName: string, email: string): string[] {
-  const localPart = email.split("@")[0] ?? "";
-  return [fullName, email, localPart]
-    .map((value) => value.trim())
-    .filter((value, index, values) => value.length > 0 && values.indexOf(value) === index);
-}
-
 export async function GET(request: NextRequest): Promise<
   NextResponse<{ tasks: ContractTask[] } | ApiErrorResponse>
 > {
-  const supabase = createServerSupabaseClient();
+  try {
+    const organizationId = await requireOrganizationScope();
+    const supabase = createServerSupabaseClient();
   const clientId = request.nextUrl.searchParams.get("client_id");
   const contractId = request.nextUrl.searchParams.get("contract_id");
   const openOnly = request.nextUrl.searchParams.get("open") === "1";
@@ -44,6 +41,7 @@ export async function GET(request: NextRequest): Promise<
   let query = supabase
     .from("contract_tasks")
     .select("*")
+    .eq("organization_id", organizationId)
     .order("due_at", { ascending: true, nullsFirst: false })
     .limit(200);
 
@@ -70,12 +68,7 @@ export async function GET(request: NextRequest): Promise<
     if (!profile) {
       return jsonError("No autorizado.", 401);
     }
-    const terms = buildMineTerms(profile.full_name, profile.email);
-    if (terms.length > 0) {
-      query = query.or(
-        terms.map((term) => `assignee_name.ilike.%${term}%`).join(","),
-      );
-    }
+    query = query.eq("assignee_user_id", profile.id);
   }
   if (search) {
     query = query.or(
@@ -109,12 +102,18 @@ export async function GET(request: NextRequest): Promise<
   }
 
   return NextResponse.json({ tasks: (data ?? []) as ContractTask[] });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "No autorizado.";
+    return jsonError(message, 403);
+  }
 }
 
 export async function POST(request: NextRequest): Promise<
   NextResponse<{ task: ContractTask } | ApiErrorResponse>
 > {
   try {
+    await requirePermission("manage_tasks");
+    const organizationId = await requireOrganizationScope();
     const body: unknown = await request.json();
     if (typeof body !== "object" || body === null) {
       return jsonError("JSON inválido.", 400);
@@ -147,7 +146,6 @@ export async function POST(request: NextRequest): Promise<
         : "normal";
 
     const supabase = createServerSupabaseClient();
-    const organizationId = await getCurrentOrganizationId();
 
     let assigneeUserId =
       typeof payload.assignee_user_id === "string" && payload.assignee_user_id.trim()
@@ -198,6 +196,7 @@ export async function POST(request: NextRequest): Promise<
     return NextResponse.json({ task: data as ContractTask }, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Error interno.";
-    return jsonError("Error interno.", 500, message);
+    const status = message.includes("permiso") ? 403 : 500;
+    return jsonError(message, status);
   }
 }

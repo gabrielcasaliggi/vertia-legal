@@ -1,16 +1,26 @@
 import { extractContractMetadataFromText } from "@/lib/contracts/metadata-extraction";
 import { createContractVersion } from "@/lib/contracts/contract-versions";
+import {
+  assertContractInOrganization,
+  requireOrganizationScope,
+} from "@/lib/auth/tenant-scope";
+import { extractTextWithQuality } from "@/lib/pdf/index-quality";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export async function reindexContractFromStorage(contractId: string): Promise<{
   extractedLength: number;
+  index_quality: "ok" | "insufficient_text";
+  index_warning: string | null;
 }> {
+  const organizationId = await requireOrganizationScope();
   const supabase = createServerSupabaseClient();
+  await assertContractInOrganization(supabase, contractId, organizationId);
 
   const { data: contract, error: fetchError } = await supabase
     .from("legal_contracts")
     .select("id, storage_path, file_name, file_hash")
     .eq("id", contractId)
+    .eq("organization_id", organizationId)
     .maybeSingle();
 
   if (fetchError || !contract) {
@@ -26,27 +36,32 @@ export async function reindexContractFromStorage(contractId: string): Promise<{
   }
 
   const buffer = Buffer.from(await fileData.arrayBuffer());
-  const { extractTextLocally } = await import("@/lib/pdf/extract-local");
-  const extractedText = await extractTextLocally(buffer);
-  const metadata = extractContractMetadataFromText(extractedText);
+  const extraction = await extractTextWithQuality(buffer);
+  const metadata = extractContractMetadataFromText(extraction.text);
 
   const { error: updateError } = await supabase
     .from("legal_contracts")
     .update({
-      extracted_text: extractedText,
+      extracted_text: extraction.text,
+      index_quality: extraction.quality,
       starts_at: metadata.starts_at,
       expires_at: metadata.expires_at,
       lifecycle_status: metadata.lifecycle_status,
       status: "indexed",
       processing_phase: "completed",
     })
-    .eq("id", contractId);
+    .eq("id", contractId)
+    .eq("organization_id", organizationId);
 
   if (updateError) {
     throw new Error(updateError.message);
   }
 
-  return { extractedLength: extractedText.length };
+  return {
+    extractedLength: extraction.text.length,
+    index_quality: extraction.quality,
+    index_warning: extraction.warning,
+  };
 }
 
 export async function replaceContractPdf(
@@ -54,17 +69,27 @@ export async function replaceContractPdf(
   file: File,
   actor?: { id: string; name: string },
   organizationId?: string | null,
-): Promise<{ version_number: number }> {
+): Promise<{
+  version_number: number;
+  index_quality: "ok" | "insufficient_text";
+  index_warning: string | null;
+}> {
+  const scopedOrganizationId = organizationId ?? (await requireOrganizationScope());
   const supabase = createServerSupabaseClient();
+  await assertContractInOrganization(supabase, contractId, scopedOrganizationId);
+
   const { createHash } = await import("crypto");
   const { getNextVersionNumber } = await import("@/lib/contracts/contract-versions");
   const { buildContractStoragePath } = await import("@/lib/storage/contract-path");
-  const { extractTextLocally } = await import("@/lib/pdf/extract-local");
 
   const buffer = Buffer.from(await file.arrayBuffer());
   const fileHash = createHash("sha256").update(buffer).digest("hex");
   const versionNumber = await getNextVersionNumber(contractId);
-  const storagePath = buildContractStoragePath(contractId, organizationId, versionNumber);
+  const storagePath = buildContractStoragePath(
+    contractId,
+    scopedOrganizationId,
+    versionNumber,
+  );
 
   const { error: uploadError } = await supabase.storage
     .from("contracts")
@@ -77,8 +102,8 @@ export async function replaceContractPdf(
     throw new Error(uploadError.message);
   }
 
-  const extractedText = await extractTextLocally(buffer);
-  const metadata = extractContractMetadataFromText(extractedText);
+  const extraction = await extractTextWithQuality(buffer);
+  const metadata = extractContractMetadataFromText(extraction.text);
 
   await createContractVersion({
     contractId,
@@ -88,7 +113,7 @@ export async function replaceContractPdf(
     fileName: file.name,
     uploadedBy: actor?.id ?? null,
     uploadedByName: actor?.name,
-    organizationId,
+    organizationId: scopedOrganizationId,
   });
 
   const { error: updateError } = await supabase
@@ -97,18 +122,24 @@ export async function replaceContractPdf(
       file_name: file.name,
       storage_path: storagePath,
       file_hash: fileHash,
-      extracted_text: extractedText,
+      extracted_text: extraction.text,
+      index_quality: extraction.quality,
       starts_at: metadata.starts_at,
       expires_at: metadata.expires_at,
       lifecycle_status: metadata.lifecycle_status,
       status: "indexed",
       processing_phase: "completed",
     })
-    .eq("id", contractId);
+    .eq("id", contractId)
+    .eq("organization_id", scopedOrganizationId);
 
   if (updateError) {
     throw new Error(updateError.message);
   }
 
-  return { version_number: versionNumber };
+  return {
+    version_number: versionNumber,
+    index_quality: extraction.quality,
+    index_warning: extraction.warning,
+  };
 }

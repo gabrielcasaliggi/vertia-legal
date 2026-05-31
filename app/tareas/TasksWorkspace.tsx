@@ -161,14 +161,21 @@ export function TasksWorkspace({ profile }: TasksWorkspaceProps) {
     return { open, overdue, urgent, completed };
   }, [tasks]);
 
-  async function updateStatus(task: ContractTask, nextStatus: TaskStatus) {
+  async function updateStatus(
+    task: ContractTask,
+    nextStatus: TaskStatus,
+    take = false,
+  ) {
     setIsUpdatingId(task.id);
     setError(null);
 
     const response = await fetch(`/api/tasks/${task.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: nextStatus }),
+      body: JSON.stringify({
+        status: nextStatus,
+        ...(take ? { take: true } : {}),
+      }),
     });
     const payload = await response.json();
 
@@ -372,7 +379,9 @@ export function TasksWorkspace({ profile }: TasksWorkspaceProps) {
                           <button
                             type="button"
                             disabled={isUpdatingId === task.id}
-                            onClick={() => void updateStatus(task, "in_progress")}
+                            onClick={() =>
+                              void updateStatus(task, "in_progress", true)
+                            }
                             className="corp-btn text-xs"
                           >
                             Tomar

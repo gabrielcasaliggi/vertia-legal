@@ -36,6 +36,11 @@ Aplicar las migraciones en orden:
 009_validation_clm.sql
 010_auth_profiles.sql
 011_notification_digest.sql
+012_admin_and_assignees.sql
+013_doc_versions_and_ai_history.sql
+014_multi_tenant.sql
+015_tenant_rls_hardening.sql
+016_org_settings_and_index_quality.sql
 ```
 
 Validar en Supabase:
@@ -182,7 +187,7 @@ Validar en `/tareas`:
 - Filtro por vencidas, hoy, próximos 7 días y sin fecha.
 - Acciones `Tomar`, `Completar` y `Cancelar`.
 
-Nota: en esta fase el responsable es texto libre (`assignee_name`). Para una producción más madura conviene migrar a `assignee_user_id`.
+Nota: las tareas usan `assignee_user_id` y el filtro **Solo mis tareas** filtra por usuario autenticado. **Tomar** asigna al usuario actual.
 
 ## 10. Prueba de auditoría cognitiva
 
@@ -269,10 +274,7 @@ El piloto está listo cuando:
 
 Si el piloto funciona, priorizar:
 
-- `assignee_user_id` para tareas asignadas a usuarios reales.
-- Panel de administración de usuarios.
-- Permisos más finos por rol.
-- Plantillas de reportes por estudio.
-- PDF server-side nativo.
-- Backups, monitoreo y CI.
-- Separación multi-estudio si se quiere ofrecer como SaaS.
+- Permisos más finos por rol (parcialmente implementados).
+- Plantillas de reportes por estudio (branding en `/admin/organizacion`).
+- OCR asíncrono en worker dedicado para PDFs escaneados.
+- Multi-estudio completo con alta de organizaciones adicionales.

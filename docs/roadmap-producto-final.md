@@ -1,6 +1,6 @@
 # Roadmap hacia producto final — Vertia Legal
 
-Este roadmap queda como referencia para más adelante. El estado actual es **MVP avanzado / piloto comercial**: suficiente para validar con un estudio real, pero todavía no cerrado como producto final escalable.
+Este roadmap queda como referencia para más adelante. El estado actual es **producto profesional mínimo / piloto comercial avanzado**: admin, multi-tenant básico, permisos por rol, reportes con branding y detección de PDFs escaneados.
 
 ## Etapa 1 — Piloto vendible
 
