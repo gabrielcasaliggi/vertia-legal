@@ -88,9 +88,16 @@ export function OrganizationSettingsPanel() {
 
   return (
     <form onSubmit={(event) => void handleSubmit(event)} className="space-y-4">
-      <p className="text-sm text-corp-muted">
-        Slug interno: <span className="font-mono text-corp-text">{slug || "default"}</span>
-      </p>
+      <div className="rounded-corp border border-slate-700 bg-slate-900/60 px-4 py-3">
+        <p className="text-sm font-medium text-corp-text">Organización activa</p>
+        <p className="mt-1 text-sm text-corp-muted">
+          Slug interno: <span className="font-mono text-corp-text">{slug || "default"}</span>
+        </p>
+        <p className="mt-2 text-xs leading-relaxed text-corp-muted">
+          Los cambios de este formulario afectan solo a esta organización. No modifican otras
+          organizaciones ni permiten crear estudios nuevos.
+        </p>
+      </div>
 
       <label className="block space-y-1">
         <span className="corp-label text-[11px]">Nombre del estudio</span>

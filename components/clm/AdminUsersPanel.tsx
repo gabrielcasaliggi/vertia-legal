@@ -94,14 +94,21 @@ export function AdminUsersPanel() {
   return (
     <div className="min-h-screen bg-corp-bg">
       <PageHeader
-        label="Administración"
-        title="Usuarios del estudio"
-        subtitle="Alta, roles y activación de cuentas. Solo visible para administradores."
+        label="Mi estudio"
+        title="Usuarios del estudio activo"
+        subtitle="Creá cuentas para abogados, contadores y asistentes de la organización con la que estás operando. No crea estudios clientes nuevos."
       />
 
       <main className="mx-auto max-w-[1000px] space-y-5 p-5">
+        <div className="rounded-corp border border-cyan-400/25 bg-cyan-500/10 px-4 py-3 text-sm text-cyan-50">
+          <p className="font-medium">Panel del administrador del estudio</p>
+          <p className="mt-1 text-cyan-100/80">
+            Si necesitás dar de alta un estudio cliente nuevo (otro estudio SaaS), eso se hace en
+            Plataforma SaaS, no desde esta pantalla.
+          </p>
+        </div>
         <section className="corp-panel p-6">
-          <p className="corp-label text-cyan-700">Nuevo usuario</p>
+          <p className="corp-label text-cyan-700">Nuevo usuario del estudio</p>
           <form
             onSubmit={(event) => void handleCreate(event)}
             className="mt-4 grid gap-3 md:grid-cols-2"

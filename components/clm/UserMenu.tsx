@@ -10,6 +10,7 @@ interface UserMenuProps {
   fullName: string;
   email: string;
   role: UserRole;
+  isPlatformAdmin?: boolean;
   activeOrganization?: OrganizationMembership | null;
   organizations?: OrganizationMembership[];
 }
@@ -18,6 +19,7 @@ export function UserMenu({
   fullName,
   email,
   role,
+  isPlatformAdmin = false,
   activeOrganization = null,
   organizations = [],
 }: UserMenuProps) {
@@ -69,7 +71,7 @@ export function UserMenu({
           {displayName}
         </p>
         <p className="text-[11px] leading-tight text-slate-400">
-          {USER_ROLE_LABELS[role]}
+          {isPlatformAdmin ? "Vertia · Plataforma" : USER_ROLE_LABELS[role]}
           {activeOrganization ? ` · ${activeOrganization.name}` : ""}
         </p>
       </div>

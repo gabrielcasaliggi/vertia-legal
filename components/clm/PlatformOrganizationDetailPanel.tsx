@@ -139,8 +139,9 @@ export function PlatformOrganizationDetailPanel({
   return (
     <main className="mx-auto max-w-[1000px] space-y-6 px-5 py-8">
       <PageHeader
+        label="Usuario Vertia · Plataforma"
         title={organization.name}
-        subtitle={`Slug: ${organization.slug} · Métricas agregadas sin contenido contractual`}
+        subtitle={`Estudio cliente · slug ${organization.slug}. Gestioná plan/estado y owner. Sin acceso a contratos.`}
         actions={
           <Link
             href="/platform/organizaciones"
@@ -217,7 +218,13 @@ export function PlatformOrganizationDetailPanel({
       </section>
 
       <section className="rounded-corp border border-slate-800 bg-slate-950/70 p-5">
-        <h2 className="mb-4 text-lg font-semibold text-slate-100">Owner inicial del estudio</h2>
+        <h2 className="mb-4 text-lg font-semibold text-slate-100">
+          Owner / administrador inicial del estudio cliente
+        </h2>
+        <p className="mb-4 text-sm text-slate-400">
+          Este usuario operará en Mi estudio (configuración y usuarios internos), no en Plataforma
+          SaaS.
+        </p>
         <form onSubmit={handleCreateOwner} className="grid gap-4 md:grid-cols-2">
           <label className="space-y-1 text-sm">
             <span className="text-slate-300">Nombre</span>

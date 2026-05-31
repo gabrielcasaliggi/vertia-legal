@@ -75,7 +75,7 @@ export function AppNav({
                     : "text-slate-300 hover:bg-white/10 hover:text-white"
                 }`}
               >
-                Admin · Usuarios
+                Mi estudio · Usuarios
               </Link>
               <Link
                 href="/admin/organizacion"
@@ -85,7 +85,7 @@ export function AppNav({
                     : "text-slate-300 hover:bg-white/10 hover:text-white"
                 }`}
               >
-                Admin · Organización
+                Mi estudio · Configuración
               </Link>
             </div>
           ) : null}
@@ -99,7 +99,7 @@ export function AppNav({
                   : "text-slate-300 hover:bg-white/10 hover:text-white"
               }`}
             >
-              Plataforma
+              Plataforma SaaS
             </Link>
           ) : null}
         </div>
@@ -117,6 +117,7 @@ export function AppNav({
               fullName={profile.full_name}
               email={profile.email}
               role={profile.role}
+              isPlatformAdmin={isPlatformAdmin}
               activeOrganization={activeOrganization}
               organizations={organizations}
             />
