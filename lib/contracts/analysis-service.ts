@@ -19,6 +19,7 @@ export class ContractAnalysisError extends Error {
 
 export async function assertContractReadyForAnalysis(
   contractId: string,
+  organizationId: string,
 ): Promise<{ extracted_text: string }> {
   const supabase = createServerSupabaseClient();
 
@@ -26,6 +27,7 @@ export async function assertContractReadyForAnalysis(
     .from("legal_contracts")
     .select("id, status, extracted_text")
     .eq("id", contractId)
+    .eq("organization_id", organizationId)
     .single();
 
   if (fetchError || !contract) {

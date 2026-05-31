@@ -407,6 +407,12 @@ export interface Database {
           logo_url: string | null;
           report_disclaimer: string | null;
           report_responsible_name: string | null;
+          status: string;
+          plan: string;
+          billing_email: string | null;
+          trial_ends_at: string | null;
+          suspended_at: string | null;
+          created_by_platform_admin_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -419,6 +425,12 @@ export interface Database {
           logo_url?: string | null;
           report_disclaimer?: string | null;
           report_responsible_name?: string | null;
+          status?: string;
+          plan?: string;
+          billing_email?: string | null;
+          trial_ends_at?: string | null;
+          suspended_at?: string | null;
+          created_by_platform_admin_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -431,8 +443,68 @@ export interface Database {
           logo_url?: string | null;
           report_disclaimer?: string | null;
           report_responsible_name?: string | null;
+          status?: string;
+          plan?: string;
+          billing_email?: string | null;
+          trial_ends_at?: string | null;
+          suspended_at?: string | null;
+          created_by_platform_admin_id?: string | null;
           created_at?: string;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      platform_admins: {
+        Row: {
+          user_id: string;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          user_id: string;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      platform_audit_log: {
+        Row: {
+          id: string;
+          actor_user_id: string | null;
+          actor_email: string;
+          action: string;
+          entity_type: string;
+          entity_id: string | null;
+          entity_label: string | null;
+          metadata: Json | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          actor_user_id?: string | null;
+          actor_email?: string;
+          action: string;
+          entity_type: string;
+          entity_id?: string | null;
+          entity_label?: string | null;
+          metadata?: Json | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          actor_user_id?: string | null;
+          actor_email?: string;
+          action?: string;
+          entity_type?: string;
+          entity_id?: string | null;
+          entity_label?: string | null;
+          metadata?: Json | null;
+          created_at?: string;
         };
         Relationships: [];
       };

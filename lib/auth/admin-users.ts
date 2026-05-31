@@ -1,4 +1,5 @@
-import { syncDefaultOrganizationMembership } from "@/lib/auth/org-membership";
+import { syncOrganizationMembership } from "@/lib/auth/org-membership";
+import { requireOrganizationId } from "@/lib/auth/organization";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { UserRole } from "@/lib/auth/roles";
 import { isUserRole } from "@/lib/auth/roles";
@@ -14,20 +15,44 @@ export interface StudioUserProfile {
   role: string;
   is_active: boolean;
   created_at: string;
+  member_role?: string;
 }
 
-export async function listStudioUsers(): Promise<StudioUserProfile[]> {
+export async function listStudioUsers(organizationId?: string): Promise<StudioUserProfile[]> {
   const supabase = createServerSupabaseClient();
-  const { data, error } = await supabase
+  const orgId = organizationId ?? (await requireOrganizationId());
+
+  const { data: members, error: membersError } = await supabase
+    .from("organization_members")
+    .select("user_id, role, is_active")
+    .eq("organization_id", orgId);
+
+  if (membersError) {
+    throw new Error(membersError.message);
+  }
+
+  const userIds = (members ?? []).map((m) => m.user_id);
+  if (userIds.length === 0) {
+    return [];
+  }
+
+  const { data: profiles, error } = await supabase
     .from("profiles")
     .select("id, email, full_name, role, is_active, created_at")
+    .in("id", userIds)
     .order("full_name", { ascending: true });
 
   if (error) {
     throw new Error(error.message);
   }
 
-  return data ?? [];
+  const memberMap = new Map((members ?? []).map((m) => [m.user_id, m]));
+
+  return (profiles ?? []).map((profile) => ({
+    ...profile,
+    member_role: memberMap.get(profile.id)?.role,
+    is_active: profile.is_active && (memberMap.get(profile.id)?.is_active ?? true),
+  }));
 }
 
 export async function createStudioUser(input: {
@@ -35,8 +60,10 @@ export async function createStudioUser(input: {
   password: string;
   full_name: string;
   role: string;
+  organizationId?: string;
 }): Promise<StudioUserProfile> {
   const supabase = createServerSupabaseClient();
+  const orgId = input.organizationId ?? (await requireOrganizationId());
 
   const { data: authData, error: authError } = await supabase.auth.admin.createUser({
     email: input.email.trim(),
@@ -62,7 +89,7 @@ export async function createStudioUser(input: {
     throw new Error(profileError?.message ?? "Usuario creado sin perfil.");
   }
 
-  await syncDefaultOrganizationMembership(supabase, authData.user.id, {
+  await syncOrganizationMembership(supabase, orgId, authData.user.id, {
     profileRole: resolveProfileRole(profile.role),
     isActive: profile.is_active,
   });
@@ -73,8 +100,11 @@ export async function createStudioUser(input: {
 export async function updateStudioUser(
   userId: string,
   patch: { full_name?: string; role?: UserRole; is_active?: boolean },
+  organizationId?: string,
 ): Promise<StudioUserProfile> {
   const supabase = createServerSupabaseClient();
+  const orgId = organizationId ?? (await requireOrganizationId());
+
   const updatePayload: {
     full_name?: string;
     role?: UserRole;
@@ -106,10 +136,18 @@ export async function updateStudioUser(
   }
 
   if (patch.role !== undefined || patch.is_active !== undefined) {
-    await syncDefaultOrganizationMembership(supabase, userId, {
+    await syncOrganizationMembership(supabase, orgId, userId, {
       profileRole: resolveProfileRole(data.role),
       isActive: data.is_active,
     });
+
+    if (patch.is_active !== undefined) {
+      await supabase
+        .from("organization_members")
+        .update({ is_active: patch.is_active })
+        .eq("organization_id", orgId)
+        .eq("user_id", userId);
+    }
   }
 
   return data;

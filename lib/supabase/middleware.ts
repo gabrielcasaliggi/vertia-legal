@@ -1,11 +1,24 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+const ACTIVE_ORG_COOKIE = "vertia_active_org";
+
 function isPublicApi(pathname: string): boolean {
   return (
     pathname === "/api/health" ||
     pathname === "/api/health/pdf" ||
     pathname.startsWith("/api/notifications/digest")
+  );
+}
+
+function isOrgSelectionExempt(pathname: string): boolean {
+  return (
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/seleccionar-organizacion") ||
+    pathname.startsWith("/platform") ||
+    pathname.startsWith("/api/platform") ||
+    pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/api/health")
   );
 }
 
@@ -97,6 +110,30 @@ export async function updateSession(request: NextRequest) {
       }
     }
 
+    if (pathname.startsWith("/platform") || pathname.startsWith("/api/platform")) {
+      const { data: platformAdmin } = await supabase
+        .from("platform_admins")
+        .select("user_id")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (!platformAdmin) {
+        if (pathname.startsWith("/api/platform")) {
+          return NextResponse.json(
+            {
+              error: "Acceso denegado.",
+              details: "Se requiere acceso de plataforma Vertia.",
+            },
+            { status: 403 },
+          );
+        }
+        const url = request.nextUrl.clone();
+        url.pathname = "/";
+        return NextResponse.redirect(url);
+      }
+    }
+
     if (pathname.startsWith("/admin") && profile?.role !== "admin") {
       if (pathname.startsWith("/api/admin")) {
         return NextResponse.json(
@@ -107,6 +144,36 @@ export async function updateSession(request: NextRequest) {
       const url = request.nextUrl.clone();
       url.pathname = "/";
       return NextResponse.redirect(url);
+    }
+
+    if (!isOrgSelectionExempt(pathname)) {
+      const { data: memberships } = await supabase
+        .from("organization_members")
+        .select("organization_id")
+        .eq("user_id", user.id)
+        .eq("is_active", true);
+
+      const orgIds = (memberships ?? []).map((membership) => membership.organization_id);
+      if (orgIds.length > 1) {
+        const cookieOrgId = request.cookies.get(ACTIVE_ORG_COOKIE)?.value?.trim();
+        const hasValidCookie = Boolean(cookieOrgId && orgIds.includes(cookieOrgId));
+
+        if (!hasValidCookie) {
+          if (pathname.startsWith("/api/")) {
+            return NextResponse.json(
+              {
+                error: "Organización no seleccionada.",
+                details: "Seleccioná una organización activa para continuar.",
+              },
+              { status: 409 },
+            );
+          }
+
+          const url = request.nextUrl.clone();
+          url.pathname = "/seleccionar-organizacion";
+          return NextResponse.redirect(url);
+        }
+      }
     }
   }
 

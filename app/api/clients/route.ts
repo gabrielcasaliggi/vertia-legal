@@ -17,6 +17,7 @@ export async function GET(): Promise<
   NextResponse<{ clients: Awaited<ReturnType<typeof listStudioClients>> } | ApiErrorResponse>
 > {
   try {
+    await requireOrganizationScope();
     const clients = await listStudioClients();
     return NextResponse.json({ clients });
   } catch (error) {

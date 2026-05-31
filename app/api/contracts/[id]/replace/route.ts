@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { replaceContractPdf } from "@/lib/contracts/reindex-contract";
 import { requirePermission } from "@/lib/auth/require-permission";
 import { getCurrentProfile } from "@/lib/auth/session";
-import { getCurrentOrganizationId } from "@/lib/auth/organization";
+import { requireOrganizationScope } from "@/lib/auth/tenant-scope";
 import { logActivity } from "@/lib/contracts/activity-log";
 import { jsonError, jsonUnexpectedError } from "@/lib/http/json-error";
 import type { ApiErrorResponse } from "@/lib/supabase/types";
@@ -44,7 +44,7 @@ export async function POST(
     }
 
     const profile = await getCurrentProfile();
-    const organizationId = await getCurrentOrganizationId();
+    const organizationId = await requireOrganizationScope();
 
     const result = await replaceContractPdf(
       id,

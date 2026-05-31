@@ -4,6 +4,7 @@ import {
   listStudioUsers,
 } from "@/lib/auth/admin-users";
 import { requireAdminProfile } from "@/lib/auth/require-admin";
+import { requireOrganizationScope } from "@/lib/auth/tenant-scope";
 import { isUserRole } from "@/lib/auth/roles";
 import { jsonError, jsonUnexpectedError } from "@/lib/http/json-error";
 import type { ApiErrorResponse } from "@/lib/supabase/types";
@@ -13,11 +14,17 @@ export async function GET(): Promise<
 > {
   try {
     await requireAdminProfile();
-    const users = await listStudioUsers();
+    const organizationId = await requireOrganizationScope();
+    const users = await listStudioUsers(organizationId);
     return NextResponse.json({ users });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Error al listar usuarios.";
-    const status = message.includes("administrador") || message.includes("autorizado") ? 403 : 500;
+    const status =
+      message.includes("administrador") ||
+      message.includes("autorizado") ||
+      message.includes("organización")
+        ? 403
+        : 500;
     return jsonError(message, status);
   }
 }
@@ -29,6 +36,7 @@ export async function POST(
 > {
   try {
     await requireAdminProfile();
+    const organizationId = await requireOrganizationScope();
     const body: unknown = await request.json();
 
     if (typeof body !== "object" || body === null) {
@@ -56,6 +64,7 @@ export async function POST(
       password,
       full_name: fullName,
       role,
+      organizationId,
     });
 
     return NextResponse.json({ user }, { status: 201 });

@@ -1,9 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { requireOrganizationId } from "@/lib/auth/organization";
+import { requireActiveOrganizationId } from "@/lib/auth/active-organization";
+import { assertOrganizationOperational } from "@/lib/auth/organization";
 import type { Database } from "@/lib/supabase/types";
 
 export async function requireOrganizationScope(): Promise<string> {
-  return requireOrganizationId();
+  const organizationId = await requireActiveOrganizationId();
+  await assertOrganizationOperational(organizationId);
+  return organizationId;
 }
 
 export async function assertContractInOrganization(

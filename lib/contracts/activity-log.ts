@@ -1,5 +1,5 @@
 import { getActorDisplayName } from "@/lib/auth/actor";
-import { getCurrentOrganizationId } from "@/lib/auth/organization";
+import { requireOrganizationScope } from "@/lib/auth/tenant-scope";
 import {
   activityActionLabel,
   type ActivityLogEntry,
@@ -14,7 +14,12 @@ export async function logActivity(input: LogActivityInput): Promise<void> {
   const supabase = createServerSupabaseClient();
   const actorName =
     input.actorName?.trim() || (await getActorDisplayName());
-  const organizationId = await getCurrentOrganizationId();
+  let organizationId: string | null = null;
+  try {
+    organizationId = await requireOrganizationScope();
+  } catch {
+    organizationId = null;
+  }
 
   const { error } = await supabase.from("activity_log").insert({
     action: input.action,
@@ -33,17 +38,14 @@ export async function logActivity(input: LogActivityInput): Promise<void> {
 
 export async function fetchRecentActivity(limit = 30): Promise<ActivityLogEntry[]> {
   const supabase = createServerSupabaseClient();
-  const organizationId = await getCurrentOrganizationId();
+  const organizationId = await requireOrganizationScope();
 
-  let query = supabase
+  const query = supabase
     .from("activity_log")
     .select("id, action, entity_type, entity_id, entity_label, actor_name, metadata, created_at")
+    .eq("organization_id", organizationId)
     .order("created_at", { ascending: false })
     .limit(limit);
-
-  if (organizationId) {
-    query = query.eq("organization_id", organizationId);
-  }
 
   const { data, error } = await query;
 

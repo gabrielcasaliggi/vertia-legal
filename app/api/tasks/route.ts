@@ -4,7 +4,6 @@ import { requirePermission } from "@/lib/auth/require-permission";
 import { requireOrganizationScope } from "@/lib/auth/tenant-scope";
 import { logActivity } from "@/lib/contracts/activity-log";
 import type { ContractTask, TaskPriority, TaskStatus } from "@/lib/contracts/tasks";
-import { getCurrentOrganizationId } from "@/lib/auth/organization";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { ApiErrorResponse } from "@/lib/supabase/types";
 

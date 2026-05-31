@@ -1,5 +1,9 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { getCurrentProfile } from "@/lib/auth/session";
+import {
+  getActiveOrganization,
+  requireActiveOrganizationId,
+  resolveActiveOrganizationId,
+} from "@/lib/auth/active-organization";
 
 export interface UserOrganization {
   id: string;
@@ -8,52 +12,41 @@ export interface UserOrganization {
 }
 
 export async function getCurrentOrganizationId(): Promise<string | null> {
-  const profile = await getCurrentProfile();
-  if (!profile) {
-    return null;
-  }
-
-  const supabase = createServerSupabaseClient();
-  const { data, error } = await supabase
-    .from("organization_members")
-    .select("organization_id, organizations(id, name, slug)")
-    .eq("user_id", profile.id)
-    .eq("is_active", true)
-    .limit(1)
-    .maybeSingle();
-
-  if (error || !data?.organization_id) {
-    const { data: defaultOrg } = await supabase
-      .from("organizations")
-      .select("id")
-      .eq("slug", "default")
-      .maybeSingle();
-    return defaultOrg?.id ?? null;
-  }
-
-  return data.organization_id;
+  return resolveActiveOrganizationId();
 }
 
 export async function getCurrentOrganization(): Promise<UserOrganization | null> {
-  const orgId = await getCurrentOrganizationId();
-  if (!orgId) {
+  const active = await getActiveOrganization();
+  if (!active) {
     return null;
   }
 
-  const supabase = createServerSupabaseClient();
-  const { data } = await supabase
-    .from("organizations")
-    .select("id, name, slug")
-    .eq("id", orgId)
-    .maybeSingle();
-
-  return data ?? null;
+  return {
+    id: active.id,
+    name: active.name,
+    slug: active.slug,
+  };
 }
 
 export async function requireOrganizationId(): Promise<string> {
-  const orgId = await getCurrentOrganizationId();
-  if (!orgId) {
-    throw new Error("No hay organización activa para el usuario.");
+  return requireActiveOrganizationId();
+}
+
+export async function assertOrganizationOperational(organizationId: string): Promise<void> {
+  const supabase = createServerSupabaseClient();
+  const { data, error } = await supabase
+    .from("organizations")
+    .select("status")
+    .eq("id", organizationId)
+    .maybeSingle();
+
+  if (error || !data) {
+    throw new Error("Organización no encontrada.");
   }
-  return orgId;
+
+  if (data.status === "suspended" || data.status === "cancelled") {
+    throw new Error(
+      "La organización está suspendida o cancelada. Contactá a Vertia Legal para reactivar el acceso.",
+    );
+  }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { updateStudioUser } from "@/lib/auth/admin-users";
 import { requireAdminProfile } from "@/lib/auth/require-admin";
+import { requireOrganizationScope } from "@/lib/auth/tenant-scope";
 import { isUserRole } from "@/lib/auth/roles";
 import { jsonError, jsonUnexpectedError } from "@/lib/http/json-error";
 import type { ApiErrorResponse } from "@/lib/supabase/types";
@@ -17,6 +18,7 @@ export async function PATCH(
 > {
   try {
     await requireAdminProfile();
+    const organizationId = await requireOrganizationScope();
     const { id } = await context.params;
     const body: unknown = await request.json();
 
@@ -36,7 +38,7 @@ export async function PATCH(
         ? { role: payload.role }
         : {}),
       ...(payload.is_active !== undefined ? { is_active: payload.is_active } : {}),
-    });
+    }, organizationId);
 
     return NextResponse.json({ user });
   } catch (error) {

@@ -6,6 +6,11 @@ import {
   parseGroqAnalysisResponse,
   persistContractAnalysis,
 } from "@/lib/contracts/analysis-service";
+import {
+  assertContractInOrganization,
+  requireOrganizationScope,
+} from "@/lib/auth/tenant-scope";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { ContractAnalysisResult } from "@/lib/contracts/analysis";
 import { createGroqClient, GROQ_VISION_MODEL } from "@/lib/groq/client";
 import { rethrowGroqError } from "@/lib/groq/errors";
@@ -22,7 +27,10 @@ export async function runVisionContractAnalysis(
     );
   }
 
-  await assertContractReadyForAnalysis(contractId);
+  const organizationId = await requireOrganizationScope();
+  const supabase = createServerSupabaseClient();
+  await assertContractInOrganization(supabase, contractId, organizationId);
+  await assertContractReadyForAnalysis(contractId, organizationId);
 
   const imageParts: ChatCompletionContentPart[] = pageImages.map((pageBuffer) => ({
       type: "image_url",

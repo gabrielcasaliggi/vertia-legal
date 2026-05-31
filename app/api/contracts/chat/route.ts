@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logActivity } from "@/lib/contracts/activity-log";
 import { persistContractAiQuery } from "@/lib/contracts/contract-ai-queries";
-import { getCurrentOrganizationId } from "@/lib/auth/organization";
 import { requirePermission } from "@/lib/auth/require-permission";
 import { getCurrentProfile } from "@/lib/auth/session";
 import { requireOrganizationScope } from "@/lib/auth/tenant-scope";
@@ -170,8 +169,6 @@ export async function POST(
 
     if (contractId) {
       const profile = await getCurrentProfile();
-      const organizationId = await getCurrentOrganizationId();
-
       await persistContractAiQuery({
         contractId,
         message,

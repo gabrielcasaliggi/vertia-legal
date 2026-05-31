@@ -10,8 +10,11 @@ import {
 } from "@/lib/contracts/analysis-service";
 import { logActivity } from "@/lib/contracts/activity-log";
 import { persistContractAudit } from "@/lib/contracts/contract-audits";
-import { getCurrentOrganizationId } from "@/lib/auth/organization";
 import { getCurrentProfile } from "@/lib/auth/session";
+import {
+  assertContractInOrganization,
+  requireOrganizationScope,
+} from "@/lib/auth/tenant-scope";
 import { createGroqClient, GROQ_MODEL } from "@/lib/groq/client";
 import { rethrowGroqError, truncateForAnalysis } from "@/lib/groq/errors";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -25,8 +28,12 @@ export async function runContractAnalysis(
   contractId: string,
   text?: string,
 ): Promise<ContractAnalysisResult> {
+  const organizationId = await requireOrganizationScope();
+  const supabase = createServerSupabaseClient();
+  await assertContractInOrganization(supabase, contractId, organizationId);
+
   const sourceText =
-    text ?? (await assertContractReadyForAnalysis(contractId)).extracted_text;
+    text ?? (await assertContractReadyForAnalysis(contractId, organizationId)).extracted_text;
   const normalizedText = sourceText.trim();
 
   if (normalizedText.length < MIN_TEXT_LENGTH) {
@@ -74,7 +81,6 @@ export async function runContractAnalysis(
   await persistContractAnalysis(contractId, analysis);
 
   const profile = await getCurrentProfile();
-  const organizationId = await getCurrentOrganizationId();
 
   await persistContractAudit({
     contractId,
@@ -84,7 +90,6 @@ export async function runContractAnalysis(
     organizationId,
   });
 
-  const supabase = createServerSupabaseClient();
   const { data: contractRow } = await supabase
     .from("legal_contracts")
     .select("file_name")

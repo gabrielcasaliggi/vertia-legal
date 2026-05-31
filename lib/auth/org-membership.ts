@@ -5,36 +5,18 @@ export type OrganizationMemberRole = "owner" | "admin" | "member";
 
 /** Rol en `organization_members` según el rol operativo del estudio (`profiles.role`). */
 export function mapProfileRoleToOrgMemberRole(profileRole: UserRole): OrganizationMemberRole {
-  return profileRole === "admin" ? "owner" : "member";
-}
-
-export async function getDefaultOrganizationId(
-  supabase: SupabaseClient,
-): Promise<string | null> {
-  const { data, error } = await supabase
-    .from("organizations")
-    .select("id")
-    .eq("slug", "default")
-    .maybeSingle();
-
-  if (error) {
-    throw new Error(error.message);
+  if (profileRole === "admin") {
+    return "owner";
   }
-
-  return data?.id ?? null;
+  return "member";
 }
 
-/** Mantiene alineado `organization_members` con el perfil en la org por defecto. */
-export async function syncDefaultOrganizationMembership(
+export async function syncOrganizationMembership(
   supabase: SupabaseClient,
+  organizationId: string,
   userId: string,
   options: { profileRole: UserRole; isActive: boolean },
 ): Promise<void> {
-  const organizationId = await getDefaultOrganizationId(supabase);
-  if (!organizationId) {
-    return;
-  }
-
   const { error } = await supabase.from("organization_members").upsert(
     {
       organization_id: organizationId,
@@ -48,4 +30,23 @@ export async function syncDefaultOrganizationMembership(
   if (error) {
     throw new Error(`No se pudo sincronizar la organización: ${error.message}`);
   }
+}
+
+/** @deprecated Usar syncOrganizationMembership con organizationId explícito */
+export async function syncDefaultOrganizationMembership(
+  supabase: SupabaseClient,
+  userId: string,
+  options: { profileRole: UserRole; isActive: boolean },
+): Promise<void> {
+  const { data } = await supabase
+    .from("organizations")
+    .select("id")
+    .eq("slug", "default")
+    .maybeSingle();
+
+  if (!data?.id) {
+    return;
+  }
+
+  await syncOrganizationMembership(supabase, data.id, userId, options);
 }

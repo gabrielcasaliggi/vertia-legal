@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import type { OrganizationMembership } from "@/lib/auth/active-organization";
 import { USER_ROLE_LABELS, type UserRole } from "@/lib/auth/roles";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
@@ -9,18 +10,28 @@ interface UserMenuProps {
   fullName: string;
   email: string;
   role: UserRole;
+  activeOrganization?: OrganizationMembership | null;
+  organizations?: OrganizationMembership[];
 }
 
-export function UserMenu({ fullName, email, role }: UserMenuProps) {
+export function UserMenu({
+  fullName,
+  email,
+  role,
+  activeOrganization = null,
+  organizations = [],
+}: UserMenuProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [switchingOrgId, setSwitchingOrgId] = useState<string | null>(null);
   const displayName = fullName.trim() || email.split("@")[0];
-  const initials = displayName
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("") || "VL";
+  const initials =
+    displayName
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join("") || "VL";
 
   async function handleLogout() {
     setLoading(true);
@@ -29,6 +40,23 @@ export function UserMenu({ fullName, email, role }: UserMenuProps) {
     router.push("/login");
     router.refresh();
     setLoading(false);
+  }
+
+  async function handleSwitchOrganization(organizationId: string) {
+    setSwitchingOrgId(organizationId);
+    try {
+      const response = await fetch("/api/auth/active-organization", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ organization_id: organizationId }),
+      });
+      if (!response.ok) {
+        return;
+      }
+      router.refresh();
+    } finally {
+      setSwitchingOrgId(null);
+    }
   }
 
   return (
@@ -40,8 +68,26 @@ export function UserMenu({ fullName, email, role }: UserMenuProps) {
         <p className="max-w-[150px] truncate text-sm font-medium leading-tight text-slate-100">
           {displayName}
         </p>
-        <p className="text-[11px] leading-tight text-slate-400">{USER_ROLE_LABELS[role]}</p>
+        <p className="text-[11px] leading-tight text-slate-400">
+          {USER_ROLE_LABELS[role]}
+          {activeOrganization ? ` · ${activeOrganization.name}` : ""}
+        </p>
       </div>
+      {organizations.length > 1 ? (
+        <select
+          value={activeOrganization?.id ?? ""}
+          onChange={(event) => void handleSwitchOrganization(event.target.value)}
+          disabled={Boolean(switchingOrgId)}
+          className="max-w-[140px] rounded-corp border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200"
+          aria-label="Organización activa"
+        >
+          {organizations.map((organization) => (
+            <option key={organization.id} value={organization.id}>
+              {organization.name}
+            </option>
+          ))}
+        </select>
+      ) : null}
       <button
         type="button"
         onClick={handleLogout}

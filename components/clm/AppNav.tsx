@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BrandMark } from "@/components/clm/BrandMark";
 import { UserMenu } from "@/components/clm/UserMenu";
+import type { OrganizationMembership } from "@/lib/auth/active-organization";
 import type { UserProfile } from "@/lib/auth/session";
 import { canManageUsers } from "@/lib/auth/roles";
 
@@ -17,21 +18,27 @@ const NAV_ITEMS = [
   },
   { href: "/tareas", label: "Tareas", match: (path: string) => path === "/tareas" },
   { href: "/reportes", label: "Reportes", match: (path: string) => path === "/reportes" },
-  {
-    href: "/admin/usuarios",
-    label: "Admin",
-    match: (path: string) => path.startsWith("/admin"),
-    adminOnly: true,
-  },
 ] as const;
 
 interface AppNavProps {
   onOpenHelp: () => void;
   profile: UserProfile | null;
+  isPlatformAdmin?: boolean;
+  activeOrganization?: OrganizationMembership | null;
+  organizations?: OrganizationMembership[];
 }
 
-export function AppNav({ onOpenHelp, profile }: AppNavProps) {
+export function AppNav({
+  onOpenHelp,
+  profile,
+  isPlatformAdmin = false,
+  activeOrganization = null,
+  organizations = [],
+}: AppNavProps) {
   const pathname = usePathname();
+  const showAdmin = profile && canManageUsers(profile.role);
+  const adminActive = pathname.startsWith("/admin");
+  const platformActive = pathname.startsWith("/platform");
 
   return (
     <nav className="sticky top-0 z-40 border-b border-slate-800/80 bg-slate-950/95 backdrop-blur-md">
@@ -41,9 +48,7 @@ export function AppNav({ onOpenHelp, profile }: AppNavProps) {
             <BrandMark />
           </div>
 
-          {NAV_ITEMS.filter(
-            (item) => !("adminOnly" in item && item.adminOnly) || (profile && canManageUsers(profile.role)),
-          ).map((item) => {
+          {NAV_ITEMS.map((item) => {
             const active = item.match(pathname);
             return (
               <Link
@@ -59,6 +64,44 @@ export function AppNav({ onOpenHelp, profile }: AppNavProps) {
               </Link>
             );
           })}
+
+          {showAdmin ? (
+            <div className="flex items-center gap-1 rounded-corp border border-slate-800 bg-slate-900/60 p-1">
+              <Link
+                href="/admin/usuarios"
+                className={`rounded-corp px-3 py-1.5 text-sm font-medium transition ${
+                  adminActive && pathname.startsWith("/admin/usuarios")
+                    ? "bg-cyan-500/20 text-cyan-100 ring-1 ring-cyan-400/40"
+                    : "text-slate-300 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                Admin · Usuarios
+              </Link>
+              <Link
+                href="/admin/organizacion"
+                className={`rounded-corp px-3 py-1.5 text-sm font-medium transition ${
+                  adminActive && pathname.startsWith("/admin/organizacion")
+                    ? "bg-cyan-500/20 text-cyan-100 ring-1 ring-cyan-400/40"
+                    : "text-slate-300 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                Admin · Organización
+              </Link>
+            </div>
+          ) : null}
+
+          {isPlatformAdmin ? (
+            <Link
+              href="/platform/organizaciones"
+              className={`rounded-corp px-3 py-1.5 text-sm font-medium transition ${
+                platformActive
+                  ? "bg-emerald-500/20 text-emerald-100 ring-1 ring-emerald-400/40"
+                  : "text-slate-300 hover:bg-white/10 hover:text-white"
+              }`}
+            >
+              Plataforma
+            </Link>
+          ) : null}
         </div>
 
         <div className="flex items-center gap-2">
@@ -70,7 +113,13 @@ export function AppNav({ onOpenHelp, profile }: AppNavProps) {
             Ayuda
           </button>
           {profile ? (
-            <UserMenu fullName={profile.full_name} email={profile.email} role={profile.role} />
+            <UserMenu
+              fullName={profile.full_name}
+              email={profile.email}
+              role={profile.role}
+              activeOrganization={activeOrganization}
+              organizations={organizations}
+            />
           ) : null}
         </div>
       </div>
