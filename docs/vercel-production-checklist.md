@@ -3,9 +3,10 @@
 ## Antes del go-live
 
 - [ ] Proyecto Supabase **productivo** separado del local
-- [ ] Migraciones `001`–`016` aplicadas en orden
+- [ ] Migraciones `001`–`017` aplicadas en orden
 - [ ] Bucket `contracts` creado (privado)
 - [ ] Usuario admin creado: `npm run create-admin`
+- [ ] Si se usa SaaS multi-org: usuario Vertia insertado en `platform_admins`
 - [ ] Repo conectado a Vercel, branch `main` en Production
 
 ## Variables en Vercel (Production)
@@ -59,6 +60,19 @@ Esperado: `"ok": true` en ambos (health general puede ser 503 si falta Groq, per
 4. Consulta asistida
 5. Auditoría cognitiva (opcional)
 6. Crear tarea
+
+## Flujo SaaS multi-organización
+
+Si el entorno se usa para varios estudios clientes:
+
+1. Entrar con usuario Vertia autorizado.
+2. Abrir `/platform/organizaciones`.
+3. Crear una organización de prueba.
+4. Crear owner inicial.
+5. Entrar con el owner.
+6. Verificar que solo ve **Mi estudio** y no **Plataforma SaaS**.
+7. Cargar un PDF de prueba.
+8. Repetir con otra organización y validar aislamiento.
 
 ## Recuperación
 

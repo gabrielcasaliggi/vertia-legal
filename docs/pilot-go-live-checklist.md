@@ -41,6 +41,7 @@ Aplicar las migraciones en orden:
 014_multi_tenant.sql
 015_tenant_rls_hardening.sql
 016_org_settings_and_index_quality.sql
+017_platform_admins_and_org_lifecycle.sql
 ```
 
 Validar en Supabase:
@@ -49,6 +50,7 @@ Validar en Supabase:
 - Existe la tabla `legal_contracts`.
 - Existen las tablas `studio_clients`, `matters`, `contract_tasks`, `contract_obligations`.
 - Existe la tabla `profiles`.
+- Existen las tablas `organizations`, `organization_members`, `platform_admins` y `platform_audit_log`.
 - Existe la tabla `notification_digest_log`.
 - RLS está habilitado según las migraciones.
 
@@ -85,11 +87,29 @@ Si no se configuran emails, el piloto puede funcionar igual. En ese caso se vali
 
 ## 4. Crear el primer administrador
 
-Crear usuario admin:
+Crear usuario admin del estudio:
 
 ```bash
 npm run create-admin -- admin@estudio.com ClaveSegura "Nombre Apellido"
 ```
+
+Ese usuario administra **Mi estudio**, no crea organizaciones SaaS.
+
+Si el piloto se opera en modo SaaS multi-organización, crear también un usuario Vertia de plataforma:
+
+```sql
+insert into public.platform_admins (user_id)
+values ('USER_UID_DE_AUTH_USERS')
+on conflict (user_id) do update set is_active = true;
+```
+
+Luego ingresar a:
+
+```text
+/platform/organizaciones
+```
+
+Y crear la organización cliente + owner inicial.
 
 Luego ingresar en:
 
@@ -262,6 +282,8 @@ Antes de cargar documentos sensibles:
 El piloto está listo cuando:
 
 - Un admin puede iniciar sesión.
+- Si aplica SaaS, un usuario Vertia puede entrar a **Plataforma SaaS**.
+- Si aplica SaaS, existe una organización cliente creada con owner inicial.
 - Se cargó al menos un PDF real.
 - El PDF se visualiza y descarga.
 - La búsqueda encuentra texto del documento.
@@ -277,4 +299,4 @@ Si el piloto funciona, priorizar:
 - Permisos más finos por rol (parcialmente implementados).
 - Plantillas de reportes por estudio (branding en `/admin/organizacion`).
 - OCR asíncrono en worker dedicado para PDFs escaneados.
-- Multi-estudio completo con alta de organizaciones adicionales.
+- Automatización de onboarding e invitaciones por email para organizaciones adicionales.

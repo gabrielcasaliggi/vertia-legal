@@ -63,7 +63,19 @@ Roles disponibles:
 - `accountant`: contador/a.
 - `assistant`: asistente o usuario operativo.
 
-En el piloto todos los roles comparten el mismo repositorio. Los roles preparan permisos más finos para etapas posteriores.
+Además de esos roles internos del estudio, Vertia Legal distingue una capa superior:
+
+- **Usuario Vertia / Plataforma**: usuario interno autorizado en `platform_admins`. Crea estudios clientes, define plan/estado y crea el owner inicial.
+- **Owner o admin del estudio**: administra usuarios y configuración de su organización activa desde **Mi estudio**.
+- **Usuario operativo**: trabaja con clientes, documentos, tareas, reportes y auditoría según su rol.
+
+Un usuario Vertia de plataforma no es automáticamente miembro operativo de todos los estudios. Si necesita trabajar dentro de un estudio, también debe existir como miembro de esa organización.
+
+### Organización activa
+
+Cada usuario opera dentro de una organización activa. Si pertenece a una sola organización, Vertia Legal entra directo. Si pertenece a varias, verá un selector para elegir con qué estudio trabajar.
+
+La organización activa se muestra en el menú de usuario y determina qué clientes, documentos, tareas y reportes son visibles.
 
 ## 4. Pantallas principales
 
@@ -117,6 +129,60 @@ Permite generar:
 - HTML imprimible.
 - Markdown.
 - Resumen de alertas por email si SMTP está configurado.
+
+### Mi estudio
+
+Disponible para owners o administradores del estudio.
+
+Incluye:
+
+- **Mi estudio · Usuarios**: alta, roles y activación de usuarios internos de la organización activa.
+- **Mi estudio · Configuración**: nombre del estudio, contacto, branding y textos legales para reportes.
+
+Importante: **Mi estudio no crea organizaciones SaaS nuevas**. Solo administra el estudio activo.
+
+### Plataforma SaaS
+
+Disponible solo para usuarios Vertia autorizados como platform admins.
+
+Permite:
+
+- Crear un nuevo estudio cliente.
+- Definir plan y estado inicial (`trial`, `active`, `suspended`, `cancelled`).
+- Crear el owner inicial del estudio.
+- Ver métricas agregadas por organización.
+- Suspender o reactivar organizaciones.
+
+La Plataforma SaaS no muestra PDFs ni texto contractual de los clientes. Su propósito es administrar el ciclo de vida comercial y operativo de los tenants.
+
+## 4.1 Crear un estudio cliente nuevo
+
+Solo un **Usuario Vertia / Plataforma** puede crear organizaciones nuevas.
+
+Ruta:
+
+```text
+/platform/organizaciones
+```
+
+Flujo recomendado:
+
+1. Entrar como usuario Vertia autorizado.
+2. Abrir **Plataforma SaaS**.
+3. Completar **Paso 1 · Crear estudio cliente**:
+   - Nombre del estudio.
+   - Slug opcional.
+   - Email de facturación.
+   - Plan.
+   - Estado inicial.
+4. Continuar a **Paso 2 · Owner inicial del estudio**:
+   - Nombre del owner.
+   - Email de acceso.
+   - Contraseña temporal.
+5. Informar al owner que ingrese al sistema.
+6. El owner configura **Mi estudio · Configuración** y crea usuarios en **Mi estudio · Usuarios**.
+
+Si no aparece el menú **Plataforma SaaS**, el usuario no está autorizado en `platform_admins` o debe cerrar sesión y volver a ingresar.
 
 ## 5. Cargar un documento
 

@@ -1,6 +1,6 @@
 # Vertia Legal
 
-Smart CLM para estudios jurídicos: indexación de PDFs, búsqueda, tareas, consulta asistida con IA bajo demanda y auditoría cognitiva.
+Smart CLM SaaS multi-organización para estudios jurídicos, contables y equipos legales: indexación de PDFs, búsqueda, tareas, consulta asistida con IA bajo demanda y auditoría cognitiva.
 
 ## Stack
 
@@ -40,9 +40,30 @@ npm run create-admin
 
 ## Documentación
 
+- `docs/indice-documentacion-proyecto.md`
+- `docs/dossier-producto-vertia-legal.md`
 - `docs/manual-usuario-vertia-legal.md`
+- `docs/saas-multiorg-operacion.md`
+- `docs/onboarding-nueva-organizacion.md`
 - `docs/pilot-go-live-checklist.md`
+- `docs/vercel-production-checklist.md`
 - `docs/roadmap-producto-final.md`
+
+## Modelo SaaS
+
+- **Plataforma SaaS**: panel interno de Vertia para crear organizaciones, owners, planes y estados.
+- **Mi estudio**: panel del owner/admin de cada organización cliente.
+- **Organización activa**: scope operativo para documentos, clientes, tareas y reportes.
+
+Para habilitar un usuario Vertia como platform admin:
+
+```sql
+insert into public.platform_admins (user_id)
+values ('USER_UID_DE_AUTH_USERS')
+on conflict (user_id) do update set is_active = true;
+```
+
+Luego ingresar a `/platform/organizaciones`.
 
 ## Seguridad
 
