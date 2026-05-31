@@ -10,7 +10,7 @@ import { requirePermission } from "@/lib/auth/require-permission";
 import { getCurrentProfile } from "@/lib/auth/session";
 import { requireOrganizationScope } from "@/lib/auth/tenant-scope";
 import { buildContractStoragePath } from "@/lib/storage/contract-path";
-import { extractTextWithQuality } from "@/lib/pdf/index-quality";
+import { extractTextWithQuality } from "@/lib/pdf/extract-text-with-quality";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { ApiErrorResponse, ContractIndexResponse } from "@/lib/supabase/types";
 

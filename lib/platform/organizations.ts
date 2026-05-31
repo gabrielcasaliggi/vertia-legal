@@ -1,6 +1,9 @@
 import { syncOrganizationMembership } from "@/lib/auth/org-membership";
 import { logPlatformAction } from "@/lib/platform/audit-log";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import type { Database } from "@/lib/supabase/types";
+
+type OrganizationUpdate = Database["public"]["Tables"]["organizations"]["Update"];
 
 export type OrganizationStatus = "trial" | "active" | "suspended" | "cancelled";
 export type OrganizationPlan = "pilot" | "professional" | "enterprise";
@@ -199,7 +202,7 @@ export async function updatePlatformOrganization(
     throw new Error("Organización no encontrada.");
   }
 
-  const payload: Record<string, string | null> = {
+  const payload: OrganizationUpdate = {
     updated_at: new Date().toISOString(),
   };
 

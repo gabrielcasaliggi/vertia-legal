@@ -15,7 +15,8 @@ function isOrgSelectionExempt(pathname: string): boolean {
   return (
     pathname.startsWith("/login") ||
     pathname.startsWith("/seleccionar-organizacion") ||
-    pathname.startsWith("/platform") ||
+    pathname === "/platform" ||
+    pathname.startsWith("/platform/") ||
     pathname.startsWith("/api/platform") ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/health")
@@ -110,7 +111,11 @@ export async function updateSession(request: NextRequest) {
       }
     }
 
-    if (pathname.startsWith("/platform") || pathname.startsWith("/api/platform")) {
+    if (
+      pathname === "/platform" ||
+      pathname.startsWith("/platform/") ||
+      pathname.startsWith("/api/platform/")
+    ) {
       const { data: platformAdmin } = await supabase
         .from("platform_admins")
         .select("user_id")

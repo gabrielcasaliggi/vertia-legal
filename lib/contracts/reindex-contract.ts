@@ -4,7 +4,7 @@ import {
   assertContractInOrganization,
   requireOrganizationScope,
 } from "@/lib/auth/tenant-scope";
-import { extractTextWithQuality } from "@/lib/pdf/index-quality";
+import { extractTextWithQuality } from "@/lib/pdf/extract-text-with-quality";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export async function reindexContractFromStorage(contractId: string): Promise<{

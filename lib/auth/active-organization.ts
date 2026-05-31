@@ -17,24 +17,31 @@ export async function listUserOrganizations(): Promise<OrganizationMembership[]>
   }
 
   const supabase = createServerSupabaseClient();
-  const { data, error } = await supabase
+  const { data: members, error: membersError } = await supabase
     .from("organization_members")
-    .select("role, organizations(id, name, slug, status)")
+    .select("organization_id, role")
     .eq("user_id", profile.id)
     .eq("is_active", true);
 
-  if (error || !data) {
+  if (membersError || !members || members.length === 0) {
     return [];
   }
 
-  return data
-    .map((row) => {
-      const org = row.organizations as {
-        id: string;
-        name: string;
-        slug: string;
-        status: string;
-      } | null;
+  const orgIds = members.map((member) => member.organization_id);
+  const { data: organizations, error: orgsError } = await supabase
+    .from("organizations")
+    .select("id, name, slug, status")
+    .in("id", orgIds);
+
+  if (orgsError || !organizations) {
+    return [];
+  }
+
+  const orgById = new Map(organizations.map((org) => [org.id, org]));
+
+  return members
+    .map((member) => {
+      const org = orgById.get(member.organization_id);
       if (!org) {
         return null;
       }
@@ -42,7 +49,7 @@ export async function listUserOrganizations(): Promise<OrganizationMembership[]>
         id: org.id,
         name: org.name,
         slug: org.slug,
-        member_role: row.role as OrganizationMembership["member_role"],
+        member_role: member.role as OrganizationMembership["member_role"],
         org_status: org.status,
       };
     })
