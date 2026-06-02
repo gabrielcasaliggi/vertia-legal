@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { ContractAuditHistoryPanel } from "@/components/clm/ContractAuditHistoryPanel";
 import { AssistedQueryHistoryPanel } from "@/components/clm/AssistedQueryHistoryPanel";
 import { ContractChatPanel } from "@/components/clm/ContractChatPanel";
 import Link from "next/link";
@@ -41,6 +42,7 @@ export function ContractDetailPanel({ contractId }: ContractDetailPanelProps) {
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [queryHistoryKey, setQueryHistoryKey] = useState(0);
+  const [auditHistoryKey, setAuditHistoryKey] = useState(0);
 
   const applyContract = useCallback((row: LegalContract) => {
     setContract(row);
@@ -122,6 +124,9 @@ export function ContractDetailPanel({ contractId }: ContractDetailPanelProps) {
       if (!response.ok) {
         throw new Error(payload.details ?? payload.error ?? "Error en auditoría.");
       }
+
+      setAuditHistoryKey((value) => value + 1);
+      await reloadContract();
     } catch (auditError) {
       const message =
         auditError instanceof Error
@@ -343,6 +348,10 @@ export function ContractDetailPanel({ contractId }: ContractDetailPanelProps) {
                   subtitle="Resultado de auditoría cognitiva"
                 />
                 <ContractAnalysisDashboard analysis={analysis} />
+                <ContractAuditHistoryPanel
+                  contractId={contractId}
+                  refreshKey={auditHistoryKey}
+                />
               </div>
             ) : (
               <SemaphoreHeatmapCard

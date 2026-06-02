@@ -88,9 +88,43 @@ export function buildAuditReportMarkdown(input: {
     "",
     input.analysis.resumen_directorio,
     "",
-    "## Cláusulas de riesgo",
-    "",
   );
+
+  const knowledge = input.analysis.conocimiento_vertia;
+  if (knowledge) {
+    lines.push(
+      "## Inteligencia Vertia (pre-IA)",
+      "",
+      `- Escaneado: ${knowledge.scanned_at}`,
+      `- Señales detectadas: ${knowledge.signal_count}`,
+      `- Reglas aplicadas: ${knowledge.rule_count}`,
+      "",
+    );
+
+    if (knowledge.signals.length > 0) {
+      lines.push("### Señales automáticas", "");
+      knowledge.signals.forEach((signal, index) => {
+        lines.push(
+          `${index + 1}. **${signal.descripcion}** (${signal.tag})`,
+          signal.evidencia ? `   - Extracto: "${signal.evidencia}"` : "",
+          "",
+        );
+      });
+    }
+
+    if (knowledge.rules.length > 0) {
+      lines.push("### Reglas internas", "");
+      knowledge.rules.forEach((rule) => {
+        lines.push(
+          `- **${rule.titulo}** (${rule.norma}) — riesgo ${rule.riesgo}, confianza ${rule.confianza}`,
+          `  ${rule.regla}`,
+          "",
+        );
+      });
+    }
+  }
+
+  lines.push("## Cláusulas de riesgo", "");
 
   if (input.analysis.clausulas_riesgo.length === 0) {
     lines.push("_Sin cláusulas críticas detectadas._");

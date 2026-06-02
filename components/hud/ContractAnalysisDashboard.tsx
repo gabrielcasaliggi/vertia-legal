@@ -5,6 +5,7 @@ import type { ContractAnalysisResult } from "@/lib/contracts/analysis";
 import { scoreToSemaphoreLevel } from "@/components/hud/SemaphoreHeatmapCard";
 import { ClausulaCard } from "./ClausulaCard";
 import { RiskScoreGauge } from "./RiskScoreGauge";
+import { VertiaKnowledgePanel } from "./VertiaKnowledgePanel";
 
 interface ContractAnalysisDashboardProps {
   analysis: ContractAnalysisResult;
@@ -46,6 +47,10 @@ export function ContractAnalysisDashboard({
           </div>
         </div>
       </div>
+
+      {analysis.conocimiento_vertia && (
+        <VertiaKnowledgePanel snapshot={analysis.conocimiento_vertia} />
+      )}
 
       <div className="grid gap-6 xl:grid-cols-2">
         <div>

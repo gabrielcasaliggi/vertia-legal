@@ -15,6 +15,11 @@ import {
   assertContractInOrganization,
   requireOrganizationScope,
 } from "@/lib/auth/tenant-scope";
+import {
+  attachKnowledgeToAnalysis,
+  augmentAuditorSystemPrompt,
+  scanContractKnowledge,
+} from "@/lib/legal-knowledge";
 import { createGroqClient, GROQ_MODEL } from "@/lib/groq/client";
 import { rethrowGroqError, truncateForAnalysis } from "@/lib/groq/errors";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -48,6 +53,12 @@ export async function runContractAnalysis(
     );
   }
 
+  const knowledgeScan = scanContractKnowledge(normalizedText);
+  const systemPrompt = augmentAuditorSystemPrompt(
+    LEGAL_AUDITOR_SYSTEM_PROMPT,
+    knowledgeScan,
+  );
+
   const groq = createGroqClient();
   const analysisInput = truncateForAnalysis(normalizedText);
 
@@ -58,7 +69,7 @@ export async function runContractAnalysis(
       model: GROQ_MODEL,
       response_format: { type: "json_object" },
       messages: [
-        { role: "system", content: LEGAL_AUDITOR_SYSTEM_PROMPT },
+        { role: "system", content: systemPrompt },
         {
           role: "user",
           content: `Analiza el siguiente contrato y devuelve el JSON estricto solicitado:\n\n${analysisInput}`,
@@ -77,7 +88,10 @@ export async function runContractAnalysis(
     throw new ContractAnalysisError("Groq no devolvió contenido en la respuesta.");
   }
 
-  const analysis = parseGroqAnalysisResponse(rawContent);
+  const analysis = attachKnowledgeToAnalysis(
+    parseGroqAnalysisResponse(rawContent),
+    knowledgeScan,
+  );
   await persistContractAnalysis(contractId, analysis);
 
   const profile = await getCurrentProfile();

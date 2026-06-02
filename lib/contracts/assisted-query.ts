@@ -1,6 +1,10 @@
 import { createGroqClient, GROQ_MODEL } from "@/lib/groq/client";
 import { GroqRateLimitError, isGroqRateLimitError } from "@/lib/groq/errors";
 import type { ContractSearchMatch } from "@/lib/contracts/search-intelligence";
+import {
+  augmentAssistedQueryContext,
+  scanContractKnowledge,
+} from "@/lib/legal-knowledge";
 
 export type AssistedQueryMode = "document_query" | "legal_doubt" | "risk_review";
 
@@ -264,6 +268,11 @@ export async function runAssistedQuery(
       ? trimContext(extractedText.slice(0, 2800))
       : undefined;
 
+  const knowledgeContext =
+    extractedText && extractedText.length > 50
+      ? augmentAssistedQueryContext(scanContractKnowledge(extractedText))
+      : "";
+
   const systemContent = trimContext(
     `Eres un asistente contractual senior de Vertia Legal (derecho contractual argentino, CCCN).
 ${BASE_RULES}
@@ -271,6 +280,7 @@ ${MODE_HINTS[mode]}
 Respondé EXCLUSIVAMENTE con JSON válido con esta forma:
 ${JSON_SCHEMA}
 El campo disclaimer debe ser: "${DISCLAIMER}"
+${knowledgeContext}
 ${formatContractContext(input.contract_name, fragment)}
 ${formatMatchesContext(input.matches ?? [])}`,
     4500,

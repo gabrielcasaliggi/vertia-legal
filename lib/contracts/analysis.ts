@@ -1,3 +1,5 @@
+import type { ContractKnowledgeSnapshot } from "@/lib/legal-knowledge/types";
+
 export type ClausulaRiesgoTipo = "rojo" | "amarillo";
 
 export interface ClausulaRiesgo {
@@ -27,11 +29,15 @@ export interface ContractMetadataFromAnalysis {
   obligaciones_estructuradas: StructuredObligation[];
 }
 
+export type { ContractKnowledgeSnapshot };
+
 export interface ContractAnalysisResult {
   score_riesgo: number;
   clausulas_riesgo: ClausulaRiesgo[];
   resumen_directorio: string;
   metadatos?: ContractMetadataFromAnalysis;
+  /** Motor de conocimiento Vertia ejecutado antes del LLM. */
+  conocimiento_vertia?: ContractKnowledgeSnapshot;
 }
 
 export interface AnalyzeContractRequest {
@@ -58,6 +64,8 @@ INSTRUCCIONES OBLIGATORIAS:
 6. Responde EXCLUSIVAMENTE con un objeto JSON válido, sin markdown, sin texto adicional.
 7. PROHIBIDO responder que falta información si recibiste contenido contractual. Analiza todo texto legible disponible.
 8. Para estabilidad operativa, devuelve como máximo 6 clausulas_riesgo y 8 obligaciones_estructuradas, priorizando lo más crítico.
+9. Si recibís el bloque "CAPA DE CONOCIMIENTO VERTIA", priorizá esas señales y reglas verificadas sobre inferencias genéricas del modelo.
+10. No cites jurisprudencia ni montos indexados. Si una norma requiere verificación de vigencia o fecha, indicarlo en motivo o sugerencia.
 
 FORMATO JSON ESTRICTO REQUERIDO:
 {
@@ -194,6 +202,89 @@ function parseMetadataFromAnalysis(value: unknown): ContractMetadataFromAnalysis
   };
 }
 
+function parseKnowledgeSnapshot(value: unknown): ContractKnowledgeSnapshot | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  const signalsRaw = value.signals;
+  const rulesRaw = value.rules;
+
+  if (!Array.isArray(signalsRaw) || !Array.isArray(rulesRaw)) {
+    return undefined;
+  }
+
+  const allowedRisk = ["alto", "medio", "bajo"] as const;
+  const allowedConfidence = ["verificado", "interpretativo", "requiere_verificacion"] as const;
+
+  const signals = signalsRaw
+    .map((item) => {
+      if (!isRecord(item)) {
+        return null;
+      }
+      if (
+        typeof item.id !== "string" ||
+        typeof item.tag !== "string" ||
+        typeof item.descripcion !== "string"
+      ) {
+        return null;
+      }
+      return {
+        id: item.id,
+        tag: item.tag,
+        descripcion: item.descripcion,
+        evidencia: typeof item.evidencia === "string" ? item.evidencia : null,
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null);
+
+  const rules = rulesRaw
+    .map((item) => {
+      if (!isRecord(item)) {
+        return null;
+      }
+      if (
+        typeof item.id !== "string" ||
+        typeof item.titulo !== "string" ||
+        typeof item.norma !== "string" ||
+        typeof item.fuente !== "string" ||
+        typeof item.regla !== "string" ||
+        typeof item.riesgo !== "string" ||
+        !allowedRisk.includes(item.riesgo as (typeof allowedRisk)[number]) ||
+        typeof item.confianza !== "string" ||
+        !allowedConfidence.includes(item.confianza as (typeof allowedConfidence)[number])
+      ) {
+        return null;
+      }
+      return {
+        id: item.id,
+        titulo: item.titulo,
+        norma: item.norma,
+        fuente: item.fuente,
+        riesgo: item.riesgo as ContractKnowledgeSnapshot["rules"][number]["riesgo"],
+        confianza: item.confianza as ContractKnowledgeSnapshot["rules"][number]["confianza"],
+        regla: item.regla,
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null);
+
+  if (
+    typeof value.scanned_at !== "string" ||
+    typeof value.signal_count !== "number" ||
+    typeof value.rule_count !== "number"
+  ) {
+    return undefined;
+  }
+
+  return {
+    scanned_at: value.scanned_at,
+    signal_count: value.signal_count,
+    rule_count: value.rule_count,
+    signals,
+    rules,
+  };
+}
+
 export function parseContractAnalysisResult(
   raw: unknown,
 ): ContractAnalysisResult | null {
@@ -201,7 +292,8 @@ export function parseContractAnalysisResult(
     return null;
   }
 
-  const { score_riesgo, clausulas_riesgo, resumen_directorio, metadatos } = raw;
+  const { score_riesgo, clausulas_riesgo, resumen_directorio, metadatos, conocimiento_vertia } =
+    raw;
 
   if (
     typeof score_riesgo !== "number" ||
@@ -226,11 +318,13 @@ export function parseContractAnalysisResult(
   }
 
   const parsedMetadata = metadatos ? parseMetadataFromAnalysis(metadatos) : undefined;
+  const parsedKnowledge = parseKnowledgeSnapshot(conocimiento_vertia);
 
   return {
     score_riesgo,
     clausulas_riesgo: parsedClausulas,
     resumen_directorio,
     ...(parsedMetadata ? { metadatos: parsedMetadata } : {}),
+    ...(parsedKnowledge ? { conocimiento_vertia: parsedKnowledge } : {}),
   };
 }
