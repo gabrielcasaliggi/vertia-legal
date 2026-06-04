@@ -6,6 +6,7 @@ export type ActivityAction =
   | "contract.archived"
   | "contract.analyzed"
   | "contract.assisted_query"
+  | "contract.compared"
   | "contract.exported"
   | "search.exported"
   | "client.created"
@@ -42,6 +43,7 @@ const ACTION_LABELS: Record<string, string> = {
   "contract.archived": "Expediente archivado",
   "contract.analyzed": "Auditoría cognitiva ejecutada",
   "contract.assisted_query": "Consulta asistida (IA)",
+  "contract.compared": "Comparación contractual ejecutada",
   "contract.exported": "Informe exportado",
   "search.exported": "Búsqueda exportada (CSV)",
   "client.created": "Cliente creado",

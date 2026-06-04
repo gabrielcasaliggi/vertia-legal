@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ContractAuditHistoryPanel } from "@/components/clm/ContractAuditHistoryPanel";
 import { AssistedQueryHistoryPanel } from "@/components/clm/AssistedQueryHistoryPanel";
 import { ContractChatPanel } from "@/components/clm/ContractChatPanel";
@@ -12,6 +12,9 @@ import { ContractObligationsPanel } from "@/components/clm/ContractObligationsPa
 import { ContractRenewalPanel } from "@/components/clm/ContractRenewalPanel";
 import { ContractTasksPanel } from "@/components/clm/ContractTasksPanel";
 import { ContractSummaryCard } from "@/components/clm/ContractSummaryCard";
+import { CorpAlert } from "@/components/clm/CorpAlert";
+import { PageBreadcrumb } from "@/components/clm/PageBreadcrumb";
+import { useUserProfile } from "@/components/clm/UserProfileContext";
 import { parseContractAnalysisResult } from "@/lib/contracts/analysis";
 import {
   PROCESSING_STATUS_LABELS,
@@ -33,16 +36,34 @@ interface ContractDetailPanelProps {
   contractId: string;
 }
 
+type DetailTab = "documento" | "operacion" | "inteligencia" | "consulta";
+
+const DETAIL_TABS: { id: DetailTab; label: string }[] = [
+  { id: "documento", label: "Documento" },
+  { id: "operacion", label: "Operación" },
+  { id: "inteligencia", label: "Inteligencia" },
+  { id: "consulta", label: "Consulta" },
+];
+
 export function ContractDetailPanel({ contractId }: ContractDetailPanelProps) {
   const router = useRouter();
+  const { can } = useUserProfile();
   const [contract, setContract] = useState<LegalContract | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notFound, setNotFound] = useState(false);
+  const [activeTab, setActiveTab] = useState<DetailTab>("documento");
   const [queryHistoryKey, setQueryHistoryKey] = useState(0);
   const [auditHistoryKey, setAuditHistoryKey] = useState(0);
+  const inteligenciaRef = useRef<HTMLDivElement>(null);
+
+  const canRunAudit = can("run_audit");
+  const canExport = can("export_reports");
+  const canArchive = can("archive_contracts");
+  const canAssistedQueryPermission = can("run_assisted_query");
 
   const applyContract = useCallback((row: LegalContract) => {
     setContract(row);
@@ -66,6 +87,7 @@ export function ContractDetailPanel({ contractId }: ContractDetailPanelProps) {
     async function load() {
       setIsLoading(true);
       setError(null);
+      setNotFound(false);
 
       const { data, error: fetchError } = await supabase
         .from("legal_contracts")
@@ -74,7 +96,7 @@ export function ContractDetailPanel({ contractId }: ContractDetailPanelProps) {
         .single();
 
       if (fetchError || !data) {
-        setError("No se pudo cargar el contrato.");
+        setNotFound(true);
         setIsLoading(false);
         return;
       }
@@ -111,6 +133,7 @@ export function ContractDetailPanel({ contractId }: ContractDetailPanelProps) {
   async function runCognitiveAudit() {
     setIsAnalyzing(true);
     setError(null);
+    setActiveTab("inteligencia");
 
     try {
       const response = await fetch("/api/contracts/analyze", {
@@ -127,6 +150,7 @@ export function ContractDetailPanel({ contractId }: ContractDetailPanelProps) {
 
       setAuditHistoryKey((value) => value + 1);
       await reloadContract();
+      inteligenciaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (auditError) {
       const message =
         auditError instanceof Error
@@ -186,7 +210,7 @@ export function ContractDetailPanel({ contractId }: ContractDetailPanelProps) {
         throw new Error(payload.details ?? payload.error ?? "Error al archivar.");
       }
 
-      router.push("/");
+      router.push("/contracts");
     } catch (archiveError) {
       const message =
         archiveError instanceof Error
@@ -200,32 +224,66 @@ export function ContractDetailPanel({ contractId }: ContractDetailPanelProps) {
 
   const analysis = parseContractAnalysisResult(contract?.analysis_result ?? null);
   const canAudit =
-    contract?.status === "indexed" || contract?.status === "pending_analysis";
+    canRunAudit &&
+    (contract?.status === "indexed" || contract?.status === "pending_analysis");
   const canAssistedQuery = Boolean(
-    contract?.extracted_text && contract.extracted_text.trim().length >= 30,
+    canAssistedQueryPermission &&
+      contract?.extracted_text &&
+      contract.extracted_text.trim().length >= 30,
   );
+
+  if (notFound) {
+    return (
+      <div className="min-h-screen bg-corp-bg">
+        <PageBreadcrumb
+          items={[
+            { label: "Documentos", href: "/contracts" },
+            { label: "Expediente no encontrado" },
+          ]}
+        />
+        <PageHeader
+          label="Expediente"
+          title="Expediente no encontrado"
+          subtitle="El documento solicitado no existe o no tenés acceso."
+        />
+        <main className="mx-auto max-w-[1200px] space-y-5 p-5">
+          <CorpAlert title="Sin resultados">
+            Verificá el enlace o volvé al registro documental del estudio.
+          </CorpAlert>
+          <Link href="/contracts" className="corp-btn-primary inline-block">
+            Volver a Documentos
+          </Link>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-corp-bg">
+      <PageBreadcrumb
+        items={[
+          { label: "Documentos", href: "/contracts" },
+          { label: contract?.file_name ?? "Expediente" },
+        ]}
+      />
+
       <PageHeader
         label="Expediente"
         title={contract?.file_name ?? "Detalle de contrato"}
         subtitle={
           contract
             ? `${contract.client_name} · ${contract.folder_name}`
-            : undefined
+            : "Recuperando metadatos del documento..."
         }
         actions={
           contract ? (
             <div className="flex flex-wrap gap-2">
               <span
-                className={`rounded-corp border px-2.5 py-1 text-xs font-medium ${lifecycleBadgeClass(contract.lifecycle_status)}`}
+                className={`corp-badge ${lifecycleBadgeClass(contract.lifecycle_status)}`}
               >
                 {LIFECYCLE_LABELS[contract.lifecycle_status]}
               </span>
-              <span
-                className={`rounded-corp border px-2.5 py-1 text-xs font-medium ${processingBadgeClass(contract.status)}`}
-              >
+              <span className={`corp-badge ${processingBadgeClass(contract.status)}`}>
                 {PROCESSING_STATUS_LABELS[contract.status]}
               </span>
             </div>
@@ -233,20 +291,51 @@ export function ContractDetailPanel({ contractId }: ContractDetailPanelProps) {
         }
       />
 
-      <div className="mx-auto max-w-[1600px] px-6">
-        <div className="flex flex-wrap items-center justify-end gap-3 border-b border-corp-border pb-4">
-            {canAssistedQuery && (
-              <a href="#consulta-asistida" className="corp-btn text-xs">
+      <div className="sticky top-[var(--app-nav-offset,4.5rem)] z-30 border-b border-corp-border bg-corp-bg/95 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-3 px-6 py-3">
+          <div className="flex flex-wrap gap-2">
+            {DETAIL_TABS.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                aria-current={activeTab === tab.id ? "page" : undefined}
+                className={`rounded-corp px-3 py-1.5 text-sm font-medium transition ${
+                  activeTab === tab.id
+                    ? "border border-cyan-300 bg-cyan-50 text-cyan-900"
+                    : "border border-transparent text-corp-muted hover:border-corp-border hover:bg-white/70 hover:text-corp-text"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {canAssistedQuery ? (
+              <button
+                type="button"
+                onClick={() => setActiveTab("consulta")}
+                className="corp-btn text-xs"
+              >
                 Consulta asistida
-              </a>
-            )}
-            {analysis && (
+              </button>
+            ) : null}
+            {contract && canRunAudit && canAssistedQuery ? (
+              <Link
+                href={`/contracts/comparar?base=${contractId}`}
+                className="corp-btn text-xs"
+              >
+                Comparar con otro
+              </Link>
+            ) : null}
+            {analysis && canExport ? (
               <>
                 <button
                   type="button"
                   onClick={() => void handleExportAudit("md")}
                   disabled={isExporting}
-                  className="corp-btn"
+                  className="corp-btn text-xs"
                 >
                   Informe MD
                 </button>
@@ -254,139 +343,139 @@ export function ContractDetailPanel({ contractId }: ContractDetailPanelProps) {
                   type="button"
                   onClick={() => void handleExportAudit("html")}
                   disabled={isExporting}
-                  className="corp-btn-primary"
+                  className="corp-btn-primary text-xs"
                 >
                   Informe HTML
                 </button>
               </>
-            )}
-            <button
-              type="button"
-              onClick={() => void handleArchive()}
-              disabled={isArchiving || !contract}
-              className="corp-btn"
-            >
-              {isArchiving ? "Archivando..." : "Archivar expediente"}
-            </button>
-          <span className="rounded-corp border border-corp-border bg-corp-surface px-3 py-2 text-xs text-corp-muted">
-            Ref: {contractId.slice(0, 8)}
-          </span>
+            ) : null}
+            {canArchive ? (
+              <button
+                type="button"
+                onClick={() => void handleArchive()}
+                disabled={isArchiving || !contract}
+                className="corp-btn text-xs"
+              >
+                {isArchiving ? "Archivando..." : "Archivar"}
+              </button>
+            ) : null}
+          </div>
         </div>
       </div>
 
       <main className="mx-auto grid max-w-[1600px] gap-5 p-5 xl:grid-cols-2">
-        <section className="corp-panel min-h-[70vh] p-6">
-          <p className="corp-label mb-3">Visor documental</p>
+        <section className="corp-panel min-h-[50vh] p-6 md:min-h-[70vh]">
+          <p className="corp-label mb-3 text-cyan-700">Visor documental</p>
           {isLoading ? (
-            <p className="p-6 text-sm text-corp-muted">Cargando expediente…</p>
+            <p className="p-6 text-sm text-corp-muted" role="status">
+              Cargando expediente…
+            </p>
           ) : (
             <ContractPdfViewer contractId={contractId} />
           )}
         </section>
 
         <section className="space-y-5">
-          {contract && <ContractSummaryCard contract={contract} />}
+          {error ? <CorpAlert>{error}</CorpAlert> : null}
 
-          {contract && (
-            <ContractMetadataEditor contract={contract} onUpdated={applyContract} />
-          )}
+          {activeTab === "documento" ? (
+            <>
+              {contract ? <ContractSummaryCard contract={contract} /> : null}
+              {contract ? (
+                <ContractMetadataEditor contract={contract} onUpdated={applyContract} />
+              ) : null}
+              {contract ? (
+                <ContractRenewalPanel contract={contract} onUpdated={applyContract} />
+              ) : null}
+            </>
+          ) : null}
 
-          {contract && (
-            <ContractRenewalPanel contract={contract} onUpdated={applyContract} />
-          )}
-
-          {contract && (
-            <ContractDocumentOpsPanel
-              contractId={contractId}
-              onUpdated={() => void reloadContract()}
-            />
-          )}
-
-          <ContractObligationsPanel contractId={contractId} />
-
-          <ContractTasksPanel
-            contractId={contractId}
-            clientId={contract?.client_id ?? undefined}
-          />
-
-          <div className="corp-panel p-6">
-            <p className="corp-label mb-3">Integridad documental</p>
-            <dl className="grid gap-3 text-sm">
-              <div>
-                <dt className="text-corp-muted">Hash SHA-256</dt>
-                <dd className="break-all text-xs text-slate-600">{contract?.file_hash}</dd>
+          {activeTab === "operacion" ? (
+            <>
+              {contract ? (
+                <ContractDocumentOpsPanel
+                  contractId={contractId}
+                  onUpdated={() => void reloadContract()}
+                />
+              ) : null}
+              <ContractObligationsPanel contractId={contractId} />
+              <ContractTasksPanel
+                contractId={contractId}
+                clientId={contract?.client_id ?? undefined}
+              />
+              <div className="corp-panel p-6">
+                <p className="corp-label mb-3 text-cyan-700">Integridad documental</p>
+                <dl className="grid gap-3 text-sm">
+                  <div>
+                    <dt className="text-corp-muted">Hash SHA-256</dt>
+                    <dd className="break-all text-xs text-slate-600">{contract?.file_hash}</dd>
+                  </div>
+                </dl>
               </div>
-            </dl>
+            </>
+          ) : null}
 
-            {canAudit && (
-              <button
-                type="button"
-                onClick={() => void runCognitiveAudit()}
-                disabled={isAnalyzing}
-                className="corp-btn-primary mt-5 w-full"
-              >
-                Ejecutar auditoría cognitiva
-              </button>
-            )}
-          </div>
+          {activeTab === "inteligencia" ? (
+            <div ref={inteligenciaRef} className="scroll-mt-28 space-y-5">
+              {canAudit ? (
+                <button
+                  type="button"
+                  onClick={() => void runCognitiveAudit()}
+                  disabled={isAnalyzing}
+                  className="corp-btn-primary w-full"
+                >
+                  {isAnalyzing ? "Auditando..." : "Ejecutar auditoría cognitiva"}
+                </button>
+              ) : null}
 
-          {error && (
-            <div className="rounded-corp border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-              {error}
-            </div>
-          )}
-
-          <div id="auditoria-cognitiva" className="scroll-mt-24">
-            {isAnalyzing ? (
-              <PipelineLoadingState mode="cognitive" />
-            ) : analysis ? (
-              <div className="space-y-5">
+              {isAnalyzing ? (
+                <PipelineLoadingState mode="cognitive" />
+              ) : analysis ? (
+                <div className="space-y-5">
+                  <SemaphoreHeatmapCard
+                    title="Indicador de riesgo contractual"
+                    level={scoreToSemaphoreLevel(analysis.score_riesgo)}
+                    score={analysis.score_riesgo}
+                    subtitle="Resultado de auditoría cognitiva"
+                  />
+                  <ContractAnalysisDashboard analysis={analysis} />
+                  <ContractAuditHistoryPanel
+                    contractId={contractId}
+                    refreshKey={auditHistoryKey}
+                  />
+                </div>
+              ) : (
                 <SemaphoreHeatmapCard
                   title="Indicador de riesgo contractual"
-                  level={scoreToSemaphoreLevel(analysis.score_riesgo)}
-                  score={analysis.score_riesgo}
-                  subtitle="Resultado de auditoría cognitiva"
+                  level="idle"
+                  subtitle="Auditoría cognitiva bajo demanda"
+                  idleMessage={
+                    contract?.status === "indexed"
+                      ? "Documento indexado. Ejecute auditoría cognitiva para obtener el indicador."
+                      : "Esperando indexación de documento..."
+                  }
                 />
-                <ContractAnalysisDashboard analysis={analysis} />
-                <ContractAuditHistoryPanel
-                  contractId={contractId}
-                  refreshKey={auditHistoryKey}
-                />
-              </div>
-            ) : (
-              <SemaphoreHeatmapCard
-                title="Indicador de riesgo contractual"
-                level="idle"
-                subtitle="Auditoría cognitiva bajo demanda"
-                idleMessage={
-                  contract?.status === "indexed"
-                    ? "Documento indexado. Ejecute auditoría cognitiva para obtener el indicador."
-                    : "Esperando indexación de documento..."
-                }
+              )}
+            </div>
+          ) : null}
+
+          {activeTab === "consulta" && contract ? (
+            <div className="space-y-5">
+              <ContractChatPanel
+                contractId={contractId}
+                contractFileName={contract.file_name}
+                canQuery={canAssistedQuery}
+                variant="detail"
+                onQueryComplete={() => setQueryHistoryKey((value) => value + 1)}
               />
-            )}
-          </div>
+              <AssistedQueryHistoryPanel
+                contractId={contractId}
+                refreshKey={queryHistoryKey}
+              />
+            </div>
+          ) : null}
         </section>
       </main>
-
-      {contract && (
-        <section
-          id="consulta-asistida"
-          className="mx-auto grid max-w-[1600px] scroll-mt-24 gap-5 p-5 pt-0 xl:grid-cols-2"
-        >
-          <ContractChatPanel
-            contractId={contractId}
-            contractFileName={contract.file_name}
-            canQuery={canAssistedQuery}
-            variant="detail"
-            onQueryComplete={() => setQueryHistoryKey((value) => value + 1)}
-          />
-          <AssistedQueryHistoryPanel
-            contractId={contractId}
-            refreshKey={queryHistoryKey}
-          />
-        </section>
-      )}
     </div>
   );
 }

@@ -355,6 +355,63 @@ export interface Database {
         };
         Relationships: [];
       };
+      contract_comparisons: {
+        Row: {
+          id: string;
+          organization_id: string;
+          base_contract_id: string;
+          compared_contract_id: string;
+          base_file_name: string;
+          compared_file_name: string;
+          summary: string;
+          risk_side: string;
+          base_score: number;
+          compared_score: number;
+          critical_count: number;
+          comparison_result: Json;
+          model: string;
+          actor_user_id: string | null;
+          actor_name: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          base_contract_id: string;
+          compared_contract_id: string;
+          base_file_name: string;
+          compared_file_name: string;
+          summary: string;
+          risk_side: string;
+          base_score: number;
+          compared_score: number;
+          critical_count?: number;
+          comparison_result: Json;
+          model?: string;
+          actor_user_id?: string | null;
+          actor_name?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          base_contract_id?: string;
+          compared_contract_id?: string;
+          base_file_name?: string;
+          compared_file_name?: string;
+          summary?: string;
+          risk_side?: string;
+          base_score?: number;
+          compared_score?: number;
+          critical_count?: number;
+          comparison_result?: Json;
+          model?: string;
+          actor_user_id?: string | null;
+          actor_name?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       contract_ai_queries: {
         Row: {
           id: string;

@@ -2,8 +2,11 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { AppPageLayout } from "@/components/clm/AppPageLayout";
 import { ContractTasksPanel } from "@/components/clm/ContractTasksPanel";
+import { CorpAlert } from "@/components/clm/CorpAlert";
 import { PageHeader } from "@/components/clm/PageHeader";
+import { StatCard } from "@/components/clm/StatCard";
 import {
   TASK_PRIORITY_LABELS,
   TASK_STATUS_LABELS,
@@ -197,42 +200,38 @@ export function TasksWorkspace({ profile }: TasksWorkspaceProps) {
   }
 
   return (
-    <div className="min-h-screen bg-corp-bg">
-      <PageHeader
-        label="Operaciones"
-        title="Mis tareas"
-        subtitle="Acá ves lo que te corresponde, lo vencido y lo que necesita seguimiento."
-        actions={
-          profile ? (
-            <span className="rounded-corp border border-cyan-300/50 bg-cyan-50 px-3 py-1.5 text-xs font-medium text-cyan-900">
-              {profile.full_name.trim() || profile.email}
-            </span>
-          ) : undefined
-        }
-      />
-
-      <main className="mx-auto grid max-w-[1400px] gap-5 p-5 xl:grid-cols-[minmax(0,1fr)_390px]">
+    <AppPageLayout
+      width="wide"
+      className="max-w-[1400px]"
+      header={
+        <PageHeader
+          label="Operaciones"
+          title="Mis tareas"
+          subtitle="Acá ves lo que te corresponde, lo vencido y lo que necesita seguimiento."
+          actions={
+            profile ? (
+              <span className="corp-inset px-3 py-1.5 text-xs font-medium text-cyan-900">
+                {profile.full_name.trim() || profile.email}
+              </span>
+            ) : undefined
+          }
+        />
+      }
+    >
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_390px]">
         <section className="space-y-5">
           <div className="grid gap-3 md:grid-cols-4">
-            <div className="corp-panel p-4">
-              <p className="corp-label">Abiertas</p>
-              <p className="mt-2 text-2xl font-semibold text-corp-text">{stats.open}</p>
-            </div>
-            <div className="corp-panel p-4">
-              <p className="corp-label text-red-700">Vencidas</p>
-              <p className="mt-2 text-2xl font-semibold text-red-700">{stats.overdue}</p>
-            </div>
-            <div className="corp-panel p-4">
-              <p className="corp-label text-amber-700">Urgentes</p>
-              <p className="mt-2 text-2xl font-semibold text-amber-700">{stats.urgent}</p>
-            </div>
-            <div className="corp-panel p-4">
-              <p className="corp-label text-emerald-700">Completadas</p>
-              <p className="mt-2 text-2xl font-semibold text-emerald-700">
-                {stats.completed}
-              </p>
-            </div>
+            <StatCard label="Abiertas" value={stats.open} accent="bg-cyan-500" variant="panel" />
+            <StatCard label="Vencidas" value={stats.overdue} accent="bg-red-500" variant="panel" />
+            <StatCard label="Urgentes" value={stats.urgent} accent="bg-amber-500" variant="panel" />
+            <StatCard
+              label="Completadas"
+              value={stats.completed}
+              accent="bg-emerald-500"
+              variant="panel"
+            />
           </div>
+          <p className="text-xs text-corp-muted">Indicadores calculados sobre la vista filtrada actual.</p>
 
           <section className="corp-panel p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -317,11 +316,7 @@ export function TasksWorkspace({ profile }: TasksWorkspaceProps) {
               <span className="text-xs text-corp-muted">{tasks.length} resultado(s)</span>
             </div>
 
-            {error ? (
-              <p className="mb-4 rounded-corp border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-                {error}
-              </p>
-            ) : null}
+            {error ? <CorpAlert className="mb-4">{error}</CorpAlert> : null}
 
             {isLoading ? (
               <p className="text-sm text-corp-muted">Cargando tareas...</p>
@@ -426,7 +421,7 @@ export function TasksWorkspace({ profile }: TasksWorkspaceProps) {
         </section>
 
         <ContractTasksPanel title="Nueva tarea" onTasksChanged={() => void loadTasks()} />
-      </main>
-    </div>
+      </div>
+    </AppPageLayout>
   );
 }

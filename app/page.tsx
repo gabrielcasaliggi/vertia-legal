@@ -4,7 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ActivityLogPanel } from "@/components/clm/ActivityLogPanel";
 import { AlertsSidebar } from "@/components/clm/AlertsSidebar";
+import { AppPageLayout } from "@/components/clm/AppPageLayout";
 import { ContractHub } from "@/components/clm/ContractHub";
+import { CorpAlert } from "@/components/clm/CorpAlert";
+import { CorpSkeletonGrid } from "@/components/clm/CorpSkeleton";
 import { HomeQuickStart } from "@/components/clm/HomeQuickStart";
 import {
   EMPTY_HYBRID_SEARCH,
@@ -12,6 +15,7 @@ import {
 } from "@/components/clm/HybridSearchPanel";
 import { ExecutiveDashboard } from "@/components/clm/ExecutiveDashboard";
 import { ExplorerSidebar } from "@/components/clm/ExplorerSidebar";
+import { PageHeader } from "@/components/clm/PageHeader";
 import type { ContractIndexResponse, ContractListItem, ContractSearchMatch } from "@/lib/supabase/types";
 import type { ContractUploadMetadata } from "@/components/clm/ContractUploadForm";
 import type { ObligationListItem } from "@/lib/contracts/obligations";
@@ -57,6 +61,8 @@ export default function ClmWorkspacePage() {
   const [isIndexing, setIsIndexing] = useState(false);
   const [indexingFileName, setIndexingFileName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isBootstrapping, setIsBootstrapping] = useState(true);
+  const [bootstrapError, setBootstrapError] = useState<string | null>(null);
 
   const loadContracts = useCallback(async () => {
     const params = new URLSearchParams();
@@ -71,7 +77,10 @@ export default function ClmWorkspacePage() {
     const payload = await response.json();
     if (response.ok) {
       setContracts(payload.contracts ?? []);
+      return true;
     }
+    setBootstrapError(payload.details ?? payload.error ?? "No se pudieron cargar los documentos.");
+    return false;
   }, [selectedClient, selectedFolder]);
 
   const loadAlerts = useCallback(async () => {
@@ -79,7 +88,10 @@ export default function ClmWorkspacePage() {
     const payload = await response.json();
     if (response.ok) {
       setAlerts(payload.alerts ?? []);
+      return true;
     }
+    setBootstrapError(payload.details ?? payload.error ?? "No se pudieron cargar las alertas.");
+    return false;
   }, []);
 
   const loadObligations = useCallback(async () => {
@@ -87,13 +99,23 @@ export default function ClmWorkspacePage() {
     const payload = await response.json();
     if (response.ok) {
       setObligations(payload.obligations ?? []);
+      return true;
     }
+    setBootstrapError(
+      payload.details ?? payload.error ?? "No se pudieron cargar las obligaciones.",
+    );
+    return false;
   }, []);
 
   useEffect(() => {
-    void loadContracts();
-    void loadAlerts();
-    void loadObligations();
+    async function bootstrap() {
+      setIsBootstrapping(true);
+      setBootstrapError(null);
+      await Promise.all([loadContracts(), loadAlerts(), loadObligations()]);
+      setIsBootstrapping(false);
+    }
+
+    void bootstrap();
   }, [loadAlerts, loadContracts, loadObligations]);
 
   const visibleContracts = useMemo(() => contracts, [contracts]);
@@ -293,40 +315,41 @@ export default function ClmWorkspacePage() {
   }
 
   return (
-    <div className="min-h-screen bg-corp-bg">
-      <main className="mx-auto max-w-[1600px] space-y-5 p-5">
-        <section className="corp-panel ops-panel-accent px-6 py-5">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <p className="corp-label text-cyan-700">Panel operativo</p>
-              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-corp-text">
-                Inicio operativo
-              </h1>
-              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-corp-muted">
-                Punto de partida para cargar documentos, buscar información,
-                revisar vencimientos y preparar informes.
-              </p>
-            </div>
-            <div className="rounded-corp border border-corp-border bg-white/70 px-4 py-3 text-right">
+    <AppPageLayout
+      header={
+        <PageHeader
+          label="Panel operativo"
+          title="Inicio operativo"
+          subtitle="Punto de partida para cargar documentos, buscar información, revisar vencimientos y preparar informes."
+          actions={
+            <div className="corp-inset px-4 py-3 text-right">
               <p className="corp-label text-cyan-700">Estado operativo</p>
               <p className="mt-1 text-sm font-medium text-corp-text">
-                {contracts.length} expediente(s) en monitoreo
+                {isBootstrapping ? "Sincronizando..." : `${contracts.length} expediente(s) en monitoreo`}
               </p>
             </div>
-          </div>
-        </section>
-
-        <HomeQuickStart
-          onScrollToSearch={() => scrollToElement("buscar-documentos")}
-          onScrollToUpload={() => scrollToElement("carga-documentos")}
+          }
         />
+      }
+    >
+      {bootstrapError ? (
+        <CorpAlert title="Error al cargar el panel">{bootstrapError}</CorpAlert>
+      ) : null}
 
-        <ExecutiveDashboard
-          searchExportParams={searchExportParams}
-          hasSearchResults={searchMatches.length > 0}
-        />
+      <HomeQuickStart
+        onScrollToSearch={() => scrollToElement("buscar-documentos")}
+        onScrollToUpload={() => scrollToElement("carga-documentos")}
+      />
 
-        <div className="grid items-start gap-5 xl:grid-cols-[260px_minmax(0,1fr)_280px]">
+      <ExecutiveDashboard
+        searchExportParams={searchExportParams}
+        hasSearchResults={searchMatches.length > 0}
+      />
+
+      {isBootstrapping ? (
+        <CorpSkeletonGrid count={3} itemClassName="h-64" />
+      ) : (
+        <div className="grid items-start gap-5 lg:grid-cols-[240px_minmax(0,1fr)] xl:grid-cols-[260px_minmax(0,1fr)_280px]">
           <ExplorerSidebar
             contracts={contracts}
             selectedClient={selectedClient}
@@ -355,7 +378,7 @@ export default function ClmWorkspacePage() {
             defaultFolder={selectedFolder}
             onUpload={(file, metadata) => void handleUpload(file, metadata)}
           />
-          <div className="space-y-5 xl:sticky xl:top-20">
+          <div className="space-y-5 lg:col-span-2 xl:col-span-1 xl:sticky xl:top-20">
             <AlertsSidebar
               alerts={alerts}
               obligations={obligations}
@@ -366,7 +389,7 @@ export default function ClmWorkspacePage() {
             <ActivityLogPanel />
           </div>
         </div>
-      </main>
-    </div>
+      )}
+    </AppPageLayout>
   );
 }

@@ -6,11 +6,5 @@ export default async function ClientDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  return (
-    <div className="min-h-screen bg-corp-bg p-5">
-      <div className="mx-auto max-w-[1200px]">
-        <Client360Panel clientId={id} />
-      </div>
-    </div>
-  );
+  return <Client360Panel clientId={id} />;
 }

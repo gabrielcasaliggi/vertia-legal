@@ -77,15 +77,14 @@ export function AlertsSidebar({
 
   return (
     <aside className="flex flex-col gap-5">
-      <SemaphoreHeatmapCard
-        title="Alertas normativas"
-        level={alertLevel}
-        score={searchActive ? ventana.score : undefined}
-        subtitle={
-          searchActive ? ventana.subtitle : "Monitoreo de vencimientos contractuales"
-        }
-        idleMessage="Esperando indexación de documento..."
-      />
+      {!searchActive ? (
+        <SemaphoreHeatmapCard
+          title="Alertas normativas"
+          level={alertLevel}
+          subtitle="Monitoreo de vencimientos contractuales"
+          idleMessage="Esperando indexación de documento..."
+        />
+      ) : null}
 
       <div className="corp-panel flex min-h-0 flex-col p-6">
         <p className="corp-label">Ventana crítica</p>

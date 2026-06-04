@@ -101,13 +101,15 @@ export function ContractHub({
         />
       </div>
 
-      <SemaphoreHeatmapCard
-        title="Indicador de riesgo contractual"
-        level={heatmapSignal.level}
-        score={heatmapSignal.score}
-        subtitle={heatmapSignal.subtitle}
-        idleMessage="Cargue o busque un documento para ver el indicador."
-      />
+      {searchMatches.length > 0 || isSearching ? (
+        <SemaphoreHeatmapCard
+          title="Indicador de riesgo contractual"
+          level={heatmapSignal.level}
+          score={heatmapSignal.score}
+          subtitle={heatmapSignal.subtitle}
+          idleMessage="Cargue o busque un documento para ver el indicador."
+        />
+      ) : null}
 
       {searchMatches.length > 0 ? (
         <div className="space-y-5">

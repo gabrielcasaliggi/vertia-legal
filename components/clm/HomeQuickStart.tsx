@@ -19,15 +19,21 @@ const ACTIONS = [
     description: "Encontrá cláusulas, partes, montos o vencimientos.",
   },
   {
+    id: "compare",
+    title: "Comparar contratos",
+    description: "Analizá diferencias entre versiones o proveedores.",
+    href: "/contracts/comparar",
+  },
+  {
     id: "tasks",
     title: "Revisar mis tareas",
-    description: "Mira vencimientos y pendientes del equipo.",
+    description: "Mirá vencimientos y pendientes del equipo.",
     href: "/tareas",
   },
   {
     id: "reports",
     title: "Generar informe",
-    description: "Exporta portfolios e informes imprimibles.",
+    description: "Exportá portfolios e informes imprimibles.",
     href: "/reportes",
   },
 ] as const;
@@ -61,7 +67,7 @@ export function HomeQuickStart({
         </div>
       </div>
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {ACTIONS.map((action) => {
           const className =
             "rounded-corp border border-corp-border bg-white/75 p-4 text-left transition hover:border-cyan-300 hover:bg-cyan-50/80";

@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { AppPageLayout } from "@/components/clm/AppPageLayout";
 import { NotificationDigestPanel } from "@/components/clm/NotificationDigestPanel";
+import { CorpAlert } from "@/components/clm/CorpAlert";
 import { PageHeader } from "@/components/clm/PageHeader";
 import type { UserRole } from "@/lib/auth/roles";
 import { canManageUsers } from "@/lib/auth/roles";
@@ -20,11 +22,13 @@ export function ReportesContent({ userRole }: ReportesContentProps) {
   const [selectedClientId, setSelectedClientId] = useState("");
   const [selectedContractId, setSelectedContractId] = useState("");
   const [isLoadingCatalog, setIsLoadingCatalog] = useState(true);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
   const isAdmin = canManageUsers(userRole);
 
   useEffect(() => {
     async function loadCatalogs() {
       setIsLoadingCatalog(true);
+      setCatalogError(null);
       const [clientsResponse, contractsResponse] = await Promise.all([
         fetch("/api/clients"),
         fetch("/api/contracts"),
@@ -38,11 +42,25 @@ export function ReportesContent({ userRole }: ReportesContentProps) {
         const loadedClients = (clientsPayload.clients ?? []) as StudioClient[];
         setClients(loadedClients);
         setSelectedClientId((current) => current || loadedClients[0]?.id || "");
+      } else {
+        setCatalogError(
+          clientsPayload.details ??
+            clientsPayload.error ??
+            "No se pudo cargar la cartera de clientes.",
+        );
       }
       if (contractsResponse.ok) {
         const loadedContracts = (contractsPayload.contracts ?? []) as ContractListItem[];
         setContracts(loadedContracts);
         setSelectedContractId((current) => current || loadedContracts[0]?.id || "");
+      } else {
+        setCatalogError(
+          (current) =>
+            current ??
+            contractsPayload.details ??
+            contractsPayload.error ??
+            "No se pudo cargar el registro documental.",
+        );
       }
       setIsLoadingCatalog(false);
     }
@@ -91,19 +109,34 @@ export function ReportesContent({ userRole }: ReportesContentProps) {
   }
 
   return (
-    <div className="min-h-screen bg-corp-bg">
-      <PageHeader
-        label="Entregables"
-        title="Informes y exportaciones"
-        subtitle="Genera entregables para clientes y exportes internos del estudio."
-      />
+    <AppPageLayout
+      width="standard"
+      header={
+        <PageHeader
+          label="Entregables"
+          title="Informes y exportaciones"
+          subtitle="Genera entregables para clientes y exportes internos del estudio."
+        />
+      }
+    >
+      {catalogError ? <CorpAlert>{catalogError}</CorpAlert> : null}
+      {message ? (
+        <CorpAlert variant="info">{message}</CorpAlert>
+      ) : null}
 
-      <main className="mx-auto max-w-[1100px] space-y-5 p-5">
-        {message && (
-          <p className="rounded-corp border border-corp-border bg-white/80 px-4 py-3 text-sm text-corp-text">
-            {message}
-          </p>
-        )}
+      {!isLoadingCatalog && clients.length === 0 && contracts.length === 0 ? (
+        <CorpAlert variant="warning" title="Sin datos para exportar">
+          Creá clientes o cargá documentos antes de generar informes. Podés empezar desde{" "}
+          <Link href="/clients" className="font-medium underline">
+            Clientes
+          </Link>{" "}
+          o{" "}
+          <Link href="/contracts" className="font-medium underline">
+            Documentos
+          </Link>
+          .
+        </CorpAlert>
+      ) : null}
 
         <section className="corp-panel ops-panel-accent p-6">
           <p className="corp-label text-cyan-700">Informes para clientes</p>
@@ -250,8 +283,7 @@ export function ReportesContent({ userRole }: ReportesContentProps) {
           </Link>
         </section>
 
-        {isAdmin ? <NotificationDigestPanel /> : null}
-      </main>
-    </div>
+      {isAdmin ? <NotificationDigestPanel /> : null}
+    </AppPageLayout>
   );
 }

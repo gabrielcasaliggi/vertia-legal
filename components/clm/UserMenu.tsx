@@ -26,6 +26,7 @@ export function UserMenu({
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [switchingOrgId, setSwitchingOrgId] = useState<string | null>(null);
+  const [orgMenuOpen, setOrgMenuOpen] = useState(false);
   const displayName = fullName.trim() || email.split("@")[0];
   const initials =
     displayName
@@ -55,6 +56,7 @@ export function UserMenu({
       if (!response.ok) {
         return;
       }
+      setOrgMenuOpen(false);
       router.refresh();
     } finally {
       setSwitchingOrgId(null);
@@ -62,7 +64,7 @@ export function UserMenu({
   }
 
   return (
-    <div className="flex items-center gap-2 rounded-corp border border-slate-700 bg-slate-900/75 px-2 py-1.5 shadow-inner shadow-white/5">
+    <div className="relative flex items-center gap-2 rounded-corp border border-slate-700 bg-slate-900/75 px-2 py-1.5 shadow-inner shadow-white/5">
       <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-cyan-400/30 bg-cyan-500/15 text-xs font-semibold text-cyan-100">
         {initials}
       </div>
@@ -72,27 +74,44 @@ export function UserMenu({
         </p>
         <p className="text-[11px] leading-tight text-slate-400">
           {isPlatformAdmin ? "Vertia · Plataforma" : USER_ROLE_LABELS[role]}
-          {activeOrganization ? ` · ${activeOrganization.name}` : ""}
         </p>
       </div>
       {organizations.length > 1 ? (
-        <select
-          value={activeOrganization?.id ?? ""}
-          onChange={(event) => void handleSwitchOrganization(event.target.value)}
-          disabled={Boolean(switchingOrgId)}
-          className="max-w-[140px] rounded-corp border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200"
-          aria-label="Organización activa"
-        >
-          {organizations.map((organization) => (
-            <option key={organization.id} value={organization.id}>
-              {organization.name}
-            </option>
-          ))}
-        </select>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setOrgMenuOpen((value) => !value)}
+            aria-expanded={orgMenuOpen}
+            aria-label="Cambiar organización"
+            disabled={Boolean(switchingOrgId)}
+            className="max-w-[140px] truncate rounded-corp border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200 hover:border-cyan-400/40"
+          >
+            {activeOrganization?.name ?? "Organización"}
+          </button>
+          {orgMenuOpen ? (
+            <div className="absolute right-0 top-full z-50 mt-2 min-w-[180px] rounded-corp border border-slate-700 bg-slate-900 p-2 shadow-xl">
+              {organizations.map((organization) => (
+                <button
+                  key={organization.id}
+                  type="button"
+                  onClick={() => void handleSwitchOrganization(organization.id)}
+                  disabled={switchingOrgId === organization.id}
+                  className={`block w-full rounded-corp px-3 py-2 text-left text-xs ${
+                    organization.id === activeOrganization?.id
+                      ? "bg-cyan-500/15 text-cyan-100"
+                      : "text-slate-200 hover:bg-white/10"
+                  }`}
+                >
+                  {organization.name}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
       ) : null}
       <button
         type="button"
-        onClick={handleLogout}
+        onClick={() => void handleLogout()}
         disabled={loading}
         className="rounded-corp px-2.5 py-1.5 text-xs font-medium text-slate-400 transition hover:bg-white/5 hover:text-white disabled:opacity-60"
       >

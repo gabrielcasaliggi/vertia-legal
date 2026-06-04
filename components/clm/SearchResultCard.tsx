@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ContractSummaryCard } from "@/components/clm/ContractSummaryCard";
+import { riesgoBadgeClass } from "@/lib/contracts/risk-badges";
 import {
   formatExpiryLabel,
   LIFECYCLE_LABELS,
@@ -13,16 +14,6 @@ interface SearchResultCardProps {
   match: ContractSearchMatch;
   selected: boolean;
   onSelect: () => void;
-}
-
-function riesgoBadgeClass(riesgo: ContractSearchMatch["riesgo"]): string {
-  if (riesgo === "ALTO") {
-    return "border-red-200 bg-red-50 text-red-800";
-  }
-  if (riesgo === "MEDIO") {
-    return "border-amber-200 bg-amber-50 text-amber-900";
-  }
-  return "border-emerald-200 bg-emerald-50 text-emerald-900";
 }
 
 function renderHighlightedSnippet(snippet: string) {
@@ -49,15 +40,6 @@ export function SearchResultCard({
 }: SearchResultCardProps) {
   return (
     <article
-      role="button"
-      tabIndex={0}
-      onClick={onSelect}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          onSelect();
-        }
-      }}
       className={`relative overflow-hidden rounded-corp border transition-colors ${
         selected
           ? "border-slate-400 bg-corp-panel shadow-corp-md ring-1 ring-slate-200"

@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { AppPageLayout } from "@/components/clm/AppPageLayout";
+import { CorpAlert } from "@/components/clm/CorpAlert";
+import { CorpSkeletonGrid } from "@/components/clm/CorpSkeleton";
 import { PageHeader } from "@/components/clm/PageHeader";
 
 interface OrganizationOption {
@@ -63,22 +66,25 @@ export function OrganizationSelectorPanel() {
   }
 
   return (
-    <main className="mx-auto flex min-h-[70vh] max-w-[720px] flex-col justify-center px-5 py-10">
-      <PageHeader
-        title="Seleccionar organización"
-        subtitle="Tu usuario pertenece a más de un estudio. Elegí con cuál querés operar."
-      />
-
-      {error ? (
-        <div className="mb-4 rounded-corp border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
-          {error}
-        </div>
-      ) : null}
+    <AppPageLayout
+      width="standard"
+      className="flex min-h-[70vh] max-w-[720px] flex-col justify-center"
+      header={
+        <PageHeader
+          label="Acceso multi-estudio"
+          title="Seleccionar organización"
+          subtitle="Tu usuario pertenece a más de un estudio. Elegí con cuál querés operar."
+        />
+      }
+    >
+      {error ? <CorpAlert>{error}</CorpAlert> : null}
 
       {isLoading ? (
-        <p className="text-sm text-slate-400">Cargando organizaciones…</p>
+        <CorpSkeletonGrid count={2} itemClassName="h-20" />
       ) : organizations.length === 0 ? (
-        <p className="text-sm text-slate-400">No tenés organizaciones activas asignadas.</p>
+        <CorpAlert variant="warning">
+          No tenés organizaciones activas asignadas. Contactá al administrador de tu estudio.
+        </CorpAlert>
       ) : (
         <div className="grid gap-3">
           {organizations.map((organization) => (
@@ -87,14 +93,14 @@ export function OrganizationSelectorPanel() {
               type="button"
               disabled={Boolean(isSelecting)}
               onClick={() => void handleSelect(organization.id)}
-              className="rounded-corp border border-slate-800 bg-slate-950/70 px-5 py-4 text-left transition hover:border-cyan-400/40 hover:bg-cyan-500/5 disabled:opacity-60"
+              className="corp-inset px-5 py-4 text-left transition hover:border-cyan-300 hover:bg-cyan-50/70 disabled:opacity-60"
             >
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="font-medium text-slate-100">{organization.name}</p>
-                  <p className="text-xs text-slate-500">{organization.slug}</p>
+                  <p className="font-medium text-corp-text">{organization.name}</p>
+                  <p className="text-xs text-corp-muted">{organization.slug}</p>
                 </div>
-                <span className="text-xs uppercase tracking-wide text-slate-400">
+                <span className="corp-badge border-corp-border bg-corp-surface text-corp-muted">
                   {isSelecting === organization.id ? "Entrando…" : organization.org_status}
                 </span>
               </div>
@@ -102,6 +108,6 @@ export function OrganizationSelectorPanel() {
           ))}
         </div>
       )}
-    </main>
+    </AppPageLayout>
   );
 }

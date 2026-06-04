@@ -8,6 +8,7 @@
   --corp-panel: rgba(255, 255, 255, 0.88);
   --corp-border: rgba(148, 163, 184, 0.36);
   --corp-text: #0f172a;
+  --app-nav-offset: 4.5rem;
 }
 
 html {
@@ -103,6 +104,41 @@ body::before {
 
   .corp-btn {
     @apply rounded-corp border border-corp-border bg-white/80 px-4 py-2.5 text-sm font-medium text-corp-text transition hover:border-cyan-300 hover:bg-cyan-50 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .corp-btn:focus-visible,
+  .corp-btn-primary:focus-visible {
+    @apply outline-none ring-2 ring-cyan-400 ring-offset-2;
+  }
+
+  .corp-inset {
+    @apply rounded-corp border border-corp-border bg-white/70;
+  }
+
+  .corp-alert-error {
+    @apply border-red-200 bg-red-50 text-red-800;
+  }
+
+  .corp-alert-warning {
+    @apply border-amber-200 bg-amber-50 text-amber-900;
+  }
+
+  .corp-alert-info {
+    @apply border-cyan-200 bg-cyan-50 text-cyan-900;
+  }
+
+  .corp-alert-success {
+    @apply border-emerald-200 bg-emerald-50 text-emerald-900;
+  }
+
+  .corp-badge {
+    @apply rounded-corp border px-2.5 py-1 text-xs font-medium;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .metric-card:hover {
+      transform: none;
+    }
   }
 
   .corp-btn-primary {

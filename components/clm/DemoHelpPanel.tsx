@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 
 interface DemoHelpPanelProps {
   open: boolean;
@@ -109,6 +110,21 @@ const FAQ = [
 ] as const;
 
 export function DemoHelpPanel({ open, onClose }: DemoHelpPanelProps) {
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open, onClose]);
+
   if (!open) {
     return null;
   }
@@ -122,11 +138,16 @@ export function DemoHelpPanel({ open, onClose }: DemoHelpPanelProps) {
         onClick={onClose}
       />
 
-      <aside className="fixed right-0 top-0 z-50 flex h-full w-full max-w-lg flex-col border-l border-corp-border bg-corp-panel shadow-corp-md">
+      <aside
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="help-panel-title"
+        className="fixed right-0 top-0 z-50 flex h-full w-full max-w-lg flex-col border-l border-corp-border bg-corp-panel shadow-corp-md"
+      >
         <div className="flex items-center justify-between border-b border-corp-border px-5 py-4">
           <div>
             <p className="corp-label text-cyan-700">Centro de ayuda</p>
-            <h2 className="text-lg font-semibold text-corp-text">
+            <h2 id="help-panel-title" className="text-lg font-semibold text-corp-text">
               Guía de uso para el estudio
             </h2>
           </div>

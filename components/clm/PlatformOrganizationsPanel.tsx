@@ -2,7 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { AppPageLayout } from "@/components/clm/AppPageLayout";
+import { CorpAlert } from "@/components/clm/CorpAlert";
+import { CorpSkeletonGrid } from "@/components/clm/CorpSkeleton";
+import { PageBreadcrumb } from "@/components/clm/PageBreadcrumb";
 import { PageHeader } from "@/components/clm/PageHeader";
+import { StatCard } from "@/components/clm/StatCard";
 
 interface OrganizationMetrics {
   users: number;
@@ -45,12 +50,12 @@ const PLAN_LABELS: Record<string, string> = {
 
 function statusBadgeClass(status: string): string {
   if (status === "active" || status === "trial") {
-    return "bg-emerald-500/15 text-emerald-200 ring-emerald-400/30";
+    return "border-emerald-200 bg-emerald-50 text-emerald-900";
   }
   if (status === "suspended") {
-    return "bg-amber-500/15 text-amber-200 ring-amber-400/30";
+    return "border-amber-200 bg-amber-50 text-amber-900";
   }
-  return "bg-rose-500/15 text-rose-200 ring-rose-400/30";
+  return "border-red-200 bg-red-50 text-red-800";
 }
 
 export function PlatformOrganizationsPanel() {
@@ -181,78 +186,120 @@ export function PlatformOrganizationsPanel() {
     }
   }
 
-  return (
-    <main className="mx-auto max-w-[1400px] space-y-6 px-5 py-8">
-      <PageHeader
-        label="Usuario Vertia · Plataforma"
-        title="Alta de estudios clientes"
-        subtitle="Solo administradores de plataforma Vertia. Desde acá se crean estudios nuevos y su primer administrador (owner). No se accede a contratos ni PDFs de clientes."
-      />
+  const totalUsers = organizations.reduce((sum, org) => sum + org.metrics.users, 0);
+  const totalContracts = organizations.reduce((sum, org) => sum + org.metrics.contracts, 0);
+  const activeOrgs = organizations.filter(
+    (org) => org.status === "active" || org.status === "trial",
+  ).length;
 
-      <div className="rounded-corp border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-50">
-        <p className="font-medium">Roles en Vertia Legal</p>
-        <ul className="mt-2 list-inside list-disc space-y-1 text-emerald-100/85">
+  return (
+    <AppPageLayout
+      width="wide"
+      className="max-w-[1400px]"
+      header={
+        <>
+          <PageBreadcrumb
+            items={[
+              { label: "Plataforma SaaS", href: "/platform/organizaciones" },
+              { label: "Organizaciones" },
+            ]}
+          />
+          <PageHeader
+            label="Plataforma Vertia"
+            title="Alta de estudios clientes"
+            subtitle="Solo administradores de plataforma. Creá estudios nuevos y su primer administrador (owner). Sin acceso a contratos ni PDFs de clientes."
+          />
+        </>
+      }
+    >
+      <CorpAlert variant="success" title="Roles en Vertia Legal">
+        <ul className="mt-1 list-inside list-disc space-y-1">
           <li>
-            <strong>Vertia (vos)</strong>: creás estudios clientes en esta pantalla.
+            <strong>Vertia (plataforma)</strong>: creás estudios clientes en esta pantalla.
           </li>
           <li>
             <strong>Owner del estudio</strong>: configura su estudio y crea usuarios en Mi estudio.
           </li>
           <li>
-            <strong>Usuarios del estudio</strong>: operan contratos, tareas y reportes.
+            <strong>Usuarios del estudio</strong>: operan documentos, tareas y reportes.
           </li>
         </ul>
-      </div>
+      </CorpAlert>
 
-      <section className="rounded-corp border border-slate-800 bg-slate-950/70 p-5">
+      {!isLoading && organizations.length > 0 ? (
+        <section className="grid gap-3 sm:grid-cols-3">
+          <StatCard
+            label="Estudios activos"
+            value={activeOrgs}
+            hint={`${organizations.length} registrados`}
+            accent="bg-emerald-500"
+            variant="panel"
+          />
+          <StatCard
+            label="Usuarios totales"
+            value={totalUsers}
+            accent="bg-cyan-500"
+            variant="panel"
+          />
+          <StatCard
+            label="Documentos indexados"
+            value={totalContracts}
+            hint="Métricas agregadas"
+            accent="bg-sky-500"
+            variant="panel"
+          />
+        </section>
+      ) : null}
+
+      <section className="corp-panel ops-panel-accent p-5">
         <div className="mb-6 flex flex-wrap items-center gap-3">
           <WizardStepBadge step={1} label="Crear estudio cliente" active={wizardStep === 1} done={wizardStep === 2} />
-          <span className="text-slate-600">→</span>
+          <span className="text-corp-muted">→</span>
           <WizardStepBadge step={2} label="Crear owner inicial" active={wizardStep === 2} done={false} />
-          <span className="text-slate-600">→</span>
-          <span className="text-sm text-slate-400">El owner opera en Mi estudio</span>
+          <span className="text-corp-muted">→</span>
+          <span className="text-sm text-corp-muted">El owner opera en Mi estudio</span>
         </div>
 
         {wizardStep === 1 ? (
           <>
-            <h2 className="mb-1 text-lg font-semibold text-cyan-100">Paso 1 · Crear estudio cliente</h2>
-            <p className="mb-4 text-sm text-slate-400">
+            <h2 className="text-lg font-semibold text-corp-text">Paso 1 · Crear estudio cliente</h2>
+            <p className="mt-1 mb-4 text-sm text-corp-muted">
               Definí el plan comercial y el estado inicial del nuevo cliente SaaS.
             </p>
             <form onSubmit={handleCreateOrganization} className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               <label className="space-y-1 text-sm">
-                <span className="text-slate-300">Nombre del estudio</span>
+                <span className="corp-label text-emerald-700">Nombre del estudio</span>
                 <input
                   value={name}
                   onChange={(event) => setName(event.target.value)}
-                  className="w-full rounded-corp border border-slate-700 bg-slate-900 px-3 py-2 text-slate-100"
+                  className="corp-input w-full"
                   required
                 />
               </label>
               <label className="space-y-1 text-sm">
-                <span className="text-slate-300">Slug (opcional)</span>
+                <span className="corp-label text-emerald-700">Slug (opcional)</span>
                 <input
                   value={slug}
                   onChange={(event) => setSlug(event.target.value)}
                   placeholder="se genera desde el nombre"
-                  className="w-full rounded-corp border border-slate-700 bg-slate-900 px-3 py-2 text-slate-100"
+                  className="corp-input w-full"
                 />
               </label>
               <label className="space-y-1 text-sm">
-                <span className="text-slate-300">Email de facturación</span>
+                <span className="corp-label text-emerald-700">Email de facturación</span>
                 <input
                   type="email"
                   value={billingEmail}
                   onChange={(event) => setBillingEmail(event.target.value)}
-                  className="w-full rounded-corp border border-slate-700 bg-slate-900 px-3 py-2 text-slate-100"
+                  className="corp-input w-full"
                 />
               </label>
               <label className="space-y-1 text-sm">
-                <span className="text-slate-300">Plan</span>
+                <span className="corp-label text-emerald-700">Plan</span>
                 <select
                   value={plan}
                   onChange={(event) => setPlan(event.target.value)}
-                  className="w-full rounded-corp border border-slate-700 bg-slate-900 px-3 py-2 text-slate-100"
+                  className="corp-input w-full"
                 >
                   <option value="pilot">Pilot</option>
                   <option value="professional">Professional</option>
@@ -260,22 +307,18 @@ export function PlatformOrganizationsPanel() {
                 </select>
               </label>
               <label className="space-y-1 text-sm">
-                <span className="text-slate-300">Estado inicial</span>
+                <span className="corp-label text-emerald-700">Estado inicial</span>
                 <select
                   value={status}
                   onChange={(event) => setStatus(event.target.value)}
-                  className="w-full rounded-corp border border-slate-700 bg-slate-900 px-3 py-2 text-slate-100"
+                  className="corp-input w-full"
                 >
                   <option value="trial">Trial</option>
                   <option value="active">Activa</option>
                 </select>
               </label>
               <div className="flex items-end">
-                <button
-                  type="submit"
-                  disabled={isCreatingOrg}
-                  className="rounded-corp bg-cyan-500/20 px-4 py-2 text-sm font-medium text-cyan-100 ring-1 ring-cyan-400/40 hover:bg-cyan-500/30 disabled:opacity-60"
-                >
+                <button type="submit" disabled={isCreatingOrg} className="corp-btn-primary">
                   {isCreatingOrg ? "Creando estudio…" : "Continuar al paso 2"}
                 </button>
               </div>
@@ -283,64 +326,55 @@ export function PlatformOrganizationsPanel() {
           </>
         ) : (
           <>
-            <h2 className="mb-1 text-lg font-semibold text-cyan-100">Paso 2 · Owner inicial del estudio</h2>
-            <p className="mb-4 text-sm text-slate-400">
+            <h2 className="text-lg font-semibold text-corp-text">Paso 2 · Owner inicial del estudio</h2>
+            <p className="mt-1 mb-4 text-sm text-corp-muted">
               Este usuario será administrador del estudio{" "}
-              <strong className="text-slate-200">{createdOrg?.name}</strong> (
+              <strong className="text-corp-text">{createdOrg?.name}</strong> (
               <span className="font-mono">{createdOrg?.slug}</span>). Podrá entrar a Mi estudio y
               crear su equipo.
             </p>
             <form onSubmit={handleCreateOwner} className="grid gap-4 md:grid-cols-2">
               <label className="space-y-1 text-sm">
-                <span className="text-slate-300">Nombre del owner</span>
+                <span className="corp-label text-emerald-700">Nombre del owner</span>
                 <input
                   value={ownerName}
                   onChange={(event) => setOwnerName(event.target.value)}
-                  className="w-full rounded-corp border border-slate-700 bg-slate-900 px-3 py-2 text-slate-100"
+                  className="corp-input w-full"
                   required
                 />
               </label>
               <label className="space-y-1 text-sm">
-                <span className="text-slate-300">Email de acceso</span>
+                <span className="corp-label text-emerald-700">Email de acceso</span>
                 <input
                   type="email"
                   value={ownerEmail}
                   onChange={(event) => setOwnerEmail(event.target.value)}
-                  className="w-full rounded-corp border border-slate-700 bg-slate-900 px-3 py-2 text-slate-100"
+                  className="corp-input w-full"
                   required
                 />
               </label>
               <label className="space-y-1 text-sm md:col-span-2">
-                <span className="text-slate-300">Contraseña temporal (mín. 8 caracteres)</span>
+                <span className="corp-label text-emerald-700">
+                  Contraseña temporal (mín. 8 caracteres)
+                </span>
                 <input
                   type="password"
                   value={ownerPassword}
                   onChange={(event) => setOwnerPassword(event.target.value)}
                   minLength={8}
-                  className="w-full rounded-corp border border-slate-700 bg-slate-900 px-3 py-2 text-slate-100"
+                  className="corp-input w-full"
                   required
                 />
               </label>
               <div className="flex flex-wrap gap-2 md:col-span-2">
-                <button
-                  type="submit"
-                  disabled={isCreatingOwner}
-                  className="rounded-corp bg-emerald-500/20 px-4 py-2 text-sm font-medium text-emerald-100 ring-1 ring-emerald-400/40 hover:bg-emerald-500/30 disabled:opacity-60"
-                >
+                <button type="submit" disabled={isCreatingOwner} className="corp-btn-primary">
                   {isCreatingOwner ? "Creando owner…" : "Finalizar alta del cliente"}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setWizardStep(1)}
-                  className="rounded-corp border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:text-white"
-                >
+                <button type="button" onClick={() => setWizardStep(1)} className="corp-btn">
                   Volver al paso 1
                 </button>
                 {createdOrg ? (
-                  <Link
-                    href={`/platform/organizaciones/${createdOrg.id}`}
-                    className="rounded-corp border border-slate-700 px-4 py-2 text-sm text-cyan-300 hover:text-cyan-100"
-                  >
+                  <Link href={`/platform/organizaciones/${createdOrg.id}`} className="corp-btn">
                     Ver detalle del estudio
                   </Link>
                 ) : null}
@@ -350,34 +384,29 @@ export function PlatformOrganizationsPanel() {
         )}
       </section>
 
-      {success ? (
-        <div className="rounded-corp border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
-          {success}
-        </div>
-      ) : null}
-      {error ? (
-        <div className="rounded-corp border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
-          {error}
-        </div>
-      ) : null}
+      {success ? <CorpAlert variant="success">{success}</CorpAlert> : null}
+      {error ? <CorpAlert>{error}</CorpAlert> : null}
 
-      <section className="overflow-hidden rounded-corp border border-slate-800 bg-slate-950/70">
-        <div className="border-b border-slate-800 px-5 py-4">
-          <h2 className="text-lg font-semibold text-slate-100">Estudios clientes registrados</h2>
-          <p className="mt-1 text-sm text-slate-400">
+      <section className="corp-panel overflow-hidden">
+        <div className="border-b border-corp-border px-5 py-4">
+          <p className="corp-label text-emerald-700">Cartera SaaS</p>
+          <h2 className="mt-1 text-lg font-semibold text-corp-text">Estudios clientes registrados</h2>
+          <p className="mt-1 text-sm text-corp-muted">
             Métricas agregadas por estudio. Sin acceso a documentos contractuales.
           </p>
         </div>
         {isLoading ? (
-          <p className="px-5 py-8 text-sm text-slate-400">Cargando…</p>
+          <div className="p-5">
+            <CorpSkeletonGrid count={3} itemClassName="h-16" />
+          </div>
         ) : organizations.length === 0 ? (
-          <p className="px-5 py-8 text-sm text-slate-400">
+          <p className="px-5 py-8 text-sm text-corp-muted">
             Todavía no hay estudios clientes. Usá el asistente de arriba para dar de alta el primero.
           </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full text-left text-sm">
-              <thead className="bg-slate-900/80 text-slate-400">
+              <thead className="border-b border-corp-border bg-corp-surface text-corp-muted">
                 <tr>
                   <th className="px-5 py-3 font-medium">Estudio</th>
                   <th className="px-5 py-3 font-medium">Estado</th>
@@ -390,30 +419,28 @@ export function PlatformOrganizationsPanel() {
               </thead>
               <tbody>
                 {organizations.map((organization) => (
-                  <tr key={organization.id} className="border-t border-slate-800/80">
+                  <tr key={organization.id} className="border-t border-corp-border">
                     <td className="px-5 py-4">
-                      <div className="font-medium text-slate-100">{organization.name}</div>
-                      <div className="text-xs text-slate-500">{organization.slug}</div>
+                      <div className="font-medium text-corp-text">{organization.name}</div>
+                      <div className="text-xs text-corp-muted">{organization.slug}</div>
                     </td>
                     <td className="px-5 py-4">
-                      <span
-                        className={`inline-flex rounded-full px-2.5 py-1 text-xs ring-1 ${statusBadgeClass(organization.status)}`}
-                      >
+                      <span className={`corp-badge ${statusBadgeClass(organization.status)}`}>
                         {STATUS_LABELS[organization.status] ?? organization.status}
                       </span>
                     </td>
-                    <td className="px-5 py-4 text-slate-300">
+                    <td className="px-5 py-4 text-corp-text">
                       {PLAN_LABELS[organization.plan] ?? organization.plan}
                     </td>
-                    <td className="px-5 py-4 text-slate-300">{organization.metrics.users}</td>
-                    <td className="px-5 py-4 text-slate-300">{organization.metrics.contracts}</td>
-                    <td className="px-5 py-4 text-slate-300">{organization.metrics.tasks}</td>
+                    <td className="px-5 py-4 text-corp-text">{organization.metrics.users}</td>
+                    <td className="px-5 py-4 text-corp-text">{organization.metrics.contracts}</td>
+                    <td className="px-5 py-4 text-corp-text">{organization.metrics.tasks}</td>
                     <td className="px-5 py-4">
                       <Link
                         href={`/platform/organizaciones/${organization.id}`}
-                        className="text-cyan-300 hover:text-cyan-100"
+                        className="font-medium text-cyan-800 hover:text-cyan-950 hover:underline"
                       >
-                        Gestionar plan / owner
+                        Gestionar
                       </Link>
                     </td>
                   </tr>
@@ -423,7 +450,7 @@ export function PlatformOrganizationsPanel() {
           </div>
         )}
       </section>
-    </main>
+    </AppPageLayout>
   );
 }
 
@@ -440,10 +467,11 @@ function WizardStepBadge({
 }) {
   const base =
     "inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium ring-1";
+
   if (done) {
     return (
-      <span className={`${base} bg-emerald-500/15 text-emerald-100 ring-emerald-400/30`}>
-        <span className="grid h-5 w-5 place-items-center rounded-full bg-emerald-500/30 text-[10px]">
+      <span className={`${base} border-emerald-200 bg-emerald-50 text-emerald-900 ring-emerald-200`}>
+        <span className="grid h-5 w-5 place-items-center rounded-full bg-emerald-100 text-[10px]">
           ✓
         </span>
         {label}
@@ -452,8 +480,8 @@ function WizardStepBadge({
   }
   if (active) {
     return (
-      <span className={`${base} bg-cyan-500/20 text-cyan-100 ring-cyan-400/40`}>
-        <span className="grid h-5 w-5 place-items-center rounded-full bg-cyan-500/30 text-[10px]">
+      <span className={`${base} border-cyan-200 bg-cyan-50 text-cyan-900 ring-cyan-200`}>
+        <span className="grid h-5 w-5 place-items-center rounded-full bg-cyan-100 text-[10px]">
           {step}
         </span>
         {label}
@@ -461,8 +489,8 @@ function WizardStepBadge({
     );
   }
   return (
-    <span className={`${base} bg-slate-900/80 text-slate-400 ring-slate-700`}>
-      <span className="grid h-5 w-5 place-items-center rounded-full bg-slate-800 text-[10px]">
+    <span className={`${base} border-corp-border bg-corp-surface text-corp-muted ring-corp-border`}>
+      <span className="grid h-5 w-5 place-items-center rounded-full bg-white text-[10px]">
         {step}
       </span>
       {label}

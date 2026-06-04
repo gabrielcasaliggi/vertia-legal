@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { StatCard } from "@/components/clm/StatCard";
 import {
   LIFECYCLE_LABELS,
   lifecycleBadgeClass,
@@ -12,29 +13,6 @@ import type { ExecutiveDashboardStats } from "@/lib/contracts/executive-dashboar
 interface ExecutiveDashboardProps {
   searchExportParams: string | null;
   hasSearchResults: boolean;
-}
-
-function StatCard({
-  label,
-  value,
-  hint,
-  accent,
-}: {
-  label: string;
-  value: string | number;
-  hint?: string;
-  accent: string;
-}) {
-  return (
-    <div className="metric-card group">
-      <div className={`mb-4 h-1 w-12 rounded-full ${accent}`} />
-      <p className="corp-label">{label}</p>
-      <p className="mt-2 text-3xl font-semibold tabular-nums tracking-tight text-corp-text">
-        {value}
-      </p>
-      {hint && <p className="mt-1 text-xs text-corp-muted">{hint}</p>}
-    </div>
-  );
 }
 
 function downloadBlob(content: Blob, filename: string) {
@@ -53,6 +31,7 @@ export function ExecutiveDashboard({
   const [stats, setStats] = useState<ExecutiveDashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -117,6 +96,17 @@ export function ExecutiveDashboard({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Link href="/contracts" className="corp-btn">
+            Ver registro completo
+          </Link>
+          <button
+            type="button"
+            onClick={() => setExpanded((value) => !value)}
+            className="corp-btn"
+            aria-expanded={expanded}
+          >
+            {expanded ? "Ocultar detalle" : "Ver mapa completo"}
+          </button>
           <button
             type="button"
             onClick={() => void handleExportSearch()}
@@ -154,7 +144,8 @@ export function ExecutiveDashboard({
         />
       </div>
 
-      <div className="mt-5 grid gap-5 lg:grid-cols-3">
+      {expanded ? (
+        <div className="mt-5 grid gap-5 lg:grid-cols-3">
         <div className="rounded-corp border border-corp-border bg-white/70 p-5 shadow-corp">
           <p className="corp-label mb-4">Estado del portfolio</p>
           <div className="space-y-2">
@@ -265,7 +256,8 @@ export function ExecutiveDashboard({
             </>
           )}
         </div>
-      </div>
+        </div>
+      ) : null}
     </section>
   );
 }
