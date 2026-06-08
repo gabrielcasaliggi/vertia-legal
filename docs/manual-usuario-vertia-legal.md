@@ -1,6 +1,6 @@
 # Manual de usuario — Vertia Legal
 
-Vertia Legal es una plataforma de control documental inteligente para estudios jurídicos, contables y equipos legales. Su objetivo es centralizar documentos, facilitar búsquedas, controlar vencimientos, asignar tareas y generar informes profesionales.
+Vertia Legal es un Smart CLM (centro de control contractual con IA) para estudios jurídicos, contables y equipos legales. Su objetivo es centralizar documentos, facilitar búsquedas, controlar vencimientos, comparar versiones contractuales, asignar tareas y generar informes profesionales con trazabilidad.
 
 La inteligencia artificial funciona como asistencia bajo demanda. No reemplaza la revisión profesional ni toma decisiones legales por el usuario.
 
@@ -14,6 +14,7 @@ Vertia Legal ayuda a responder preguntas operativas frecuentes:
 - ¿Qué cláusulas tienen riesgo o requieren revisión?
 - ¿Qué documentos están asociados a un cliente?
 - ¿Qué informe puedo entregar al cliente?
+- ¿Qué cambió entre el contrato viejo y la propuesta nueva?
 
 El sistema combina:
 
@@ -24,8 +25,11 @@ El sistema combina:
 - Cliente 360.
 - Tareas y responsables.
 - Bitácora de actividad.
+- Comparador contractual 1 a 1.
+- Historial de comparaciones.
 - Auditoría cognitiva bajo demanda.
-- Exportes profesionales.
+- Consulta asistida sobre documentos indexados.
+- Exportes profesionales (auditoría, portfolio, comparativo).
 
 ## 2. Qué no hace
 
@@ -35,9 +39,9 @@ Vertia Legal no debe interpretarse como:
 - Un sistema de firma digital.
 - Un gestor judicial completo.
 - Un ERP contable.
-- Un CLM enterprise completo con aprobaciones complejas, redlining y negociación colaborativa.
+- Un CLM enterprise completo con aprobaciones complejas, redlining colaborativo ni firma electrónica avanzada.
 
-El foco actual es el control documental inteligente y operativo.
+Sí incluye capacidades Smart CLM operativas: repositorio privado, búsqueda, vencimientos, tareas, auditoría IA bajo demanda, comparación contractual y reportes exportables. El foco es control contractual inteligente y operativo, no reemplazo del criterio profesional.
 
 ## 3. Acceso al sistema
 
@@ -51,10 +55,14 @@ Usar correo y contraseña asignados por el administrador.
 
 En la barra superior se muestra:
 
-- Nombre del usuario.
-- Rol.
+- Navegación principal (Inicio, Clientes, Documentos, Tareas, Reportes).
+- Chip con el nombre de la **organización activa** (si aplica).
+- Menú **Configuración** (usuarios y ajustes del estudio; Plataforma SaaS para admins Vertia).
+- Nombre del usuario, rol y selector de organización (si pertenece a más de una).
 - Botón `Salir`.
-- Acceso al centro de ayuda.
+- Acceso al centro de ayuda (`Ayuda`).
+
+En pantallas pequeñas, la navegación se agrupa en el menú **Menú** (hamburguesa).
 
 Roles disponibles:
 
@@ -75,7 +83,13 @@ Un usuario Vertia de plataforma no es automáticamente miembro operativo de todo
 
 Cada usuario opera dentro de una organización activa. Si pertenece a una sola organización, Vertia Legal entra directo. Si pertenece a varias, verá un selector para elegir con qué estudio trabajar.
 
-La organización activa se muestra en el menú de usuario y determina qué clientes, documentos, tareas y reportes son visibles.
+La organización activa se muestra en la barra superior y en el menú de usuario. Determina qué clientes, documentos, tareas, comparaciones y reportes son visibles.
+
+Si el usuario pertenece a varias organizaciones y aún no eligió una, puede redirigirse a `/seleccionar-organizacion` para elegir con qué estudio operar.
+
+### Permisos visibles
+
+Algunas acciones solo aparecen si el rol del usuario lo permite (por ejemplo: cargar documentos, auditar, comparar, exportar informes, archivar). Si no ves un botón que esperás, consultá con el administrador del estudio; no es un error de la pantalla.
 
 ## 4. Pantallas principales
 
@@ -83,11 +97,14 @@ La organización activa se muestra en el menú de usuario y determina qué clien
 
 Es la pantalla principal de trabajo y el punto de partida. Permite:
 
+- Acciones rápidas (cargar, buscar, comparar, tareas, reportes).
 - Cargar documentos.
-- Buscar documentos y cláusulas.
-- Ver indicadores ejecutivos.
-- Revisar alertas de vencimiento.
+- Buscar documentos y cláusulas (búsqueda híbrida con filtros).
+- Ver indicadores ejecutivos del portfolio (mapa colapsable).
+- Revisar alertas de vencimiento y obligaciones.
 - Consultar la bitácora reciente.
+
+Si la carga inicial falla, se muestra un mensaje de error en lugar de pantallas vacías.
 
 ### Clientes
 
@@ -101,13 +118,14 @@ Permite gestionar el Cliente 360:
 
 ### Documentos
 
-Muestra el registro documental completo:
+Muestra el registro documental completo (`/contracts`):
 
-- Nombre del archivo.
-- Cliente.
-- Carpeta.
-- Estado.
-- Vencimiento.
+- Métricas del portfolio (total, indexados, ventana crítica, clientes).
+- Filtro por texto sobre archivo, cliente, tipo o partes.
+- Enlace a búsqueda avanzada en Inicio.
+- **Cargar documento** (modal de carga sin salir de Documentos), si el rol lo permite.
+- **Comparar contratos** (acceso al comparador), si el rol lo permite.
+- Listado de expedientes con estado, vigencia, partes y hash.
 - Acceso al detalle del expediente.
 
 ### Tareas
@@ -120,12 +138,21 @@ Es la bandeja operativa del usuario:
 - Filtros por responsable, estado, prioridad y fecha.
 - Acciones rápidas para tomar, completar o cancelar.
 
+### Comparador contractual
+
+Pantalla dedicada (`/contracts/comparar`). No forma parte del menú principal; se accede desde Documentos, Inicio (acción rápida) o desde el detalle de un expediente (**Comparar con otro**).
+
+Permite contrastar dos contratos indexados de la **misma organización** (pueden ser de clientes distintos) y obtener un informe con cambios críticos, diferencias operativas y recomendaciones.
+
+Requiere permiso de auditoría/comparación (`run_audit`). Roles `assistant` y `accountant` no ven esta función por defecto.
+
 ### Reportes
 
 Permite generar:
 
 - Portfolio por cliente.
 - Informe de auditoría por contrato.
+- Informe comparativo (desde el comparador: export MD/HTML).
 - HTML imprimible.
 - Markdown.
 - Resumen de alertas por email si SMTP está configurado.
@@ -143,17 +170,18 @@ Importante: **Mi estudio no crea organizaciones SaaS nuevas**. Solo administra e
 
 ### Plataforma SaaS
 
-Disponible solo para usuarios Vertia autorizados como platform admins.
+Disponible solo para usuarios Vertia autorizados como platform admins. Acceso: menú **Configuración → Plataforma SaaS** o ruta `/platform/organizaciones`.
 
 Permite:
 
-- Crear un nuevo estudio cliente.
+- Crear un nuevo estudio cliente (wizard en dos pasos).
 - Definir plan y estado inicial (`trial`, `active`, `suspended`, `cancelled`).
 - Crear el owner inicial del estudio.
-- Ver métricas agregadas por organización.
+- Ver métricas agregadas por organización (usuarios, documentos, tareas).
+- Gestionar plan y estado desde el detalle de cada estudio (`/platform/organizaciones/[id]`).
 - Suspender o reactivar organizaciones.
 
-La Plataforma SaaS no muestra PDFs ni texto contractual de los clientes. Su propósito es administrar el ciclo de vida comercial y operativo de los tenants.
+La interfaz usa el mismo lenguaje visual que el resto del producto (paneles, alertas, breadcrumbs). La Plataforma SaaS **no muestra PDFs ni texto contractual** de los clientes. Su propósito es administrar el ciclo de vida comercial y operativo de los tenants.
 
 ## 4.1 Crear un estudio cliente nuevo
 
@@ -182,11 +210,13 @@ Flujo recomendado:
 5. Informar al owner que ingrese al sistema.
 6. El owner configura **Mi estudio · Configuración** y crea usuarios en **Mi estudio · Usuarios**.
 
-Si no aparece el menú **Plataforma SaaS**, el usuario no está autorizado en `platform_admins` o debe cerrar sesión y volver a ingresar.
+Desde el listado, **Gestionar** abre el detalle del estudio para cambiar plan/estado o crear un owner adicional.
+
+Si no aparece **Plataforma SaaS** en Configuración, el usuario no está autorizado en `platform_admins` o debe cerrar sesión y volver a ingresar.
 
 ## 5. Cargar un documento
 
-Desde Inicio:
+Desde **Inicio** (sección de carga) o desde **Documentos** (botón **Cargar documento**):
 
 1. Completar cliente.
 2. Completar carpeta o expediente.
@@ -235,18 +265,22 @@ Al abrir un resultado, se accede al detalle del contrato para revisar el PDF, me
 
 ## 7. Detalle del contrato
 
-El detalle concentra la información operativa del documento:
+Ruta: `/contracts/[id]`. El expediente se organiza en **pestañas** para reducir el scroll:
 
-- Visor PDF.
-- Descarga del archivo.
-- Metadatos.
-- Estado del ciclo de vida.
-- Renovación.
-- Obligaciones.
-- Tareas.
-- Hash SHA-256.
-- Auditoría cognitiva.
-- Exportes.
+| Pestaña | Contenido |
+|---------|-----------|
+| **Documento** | Resumen, metadatos editables, renovación |
+| **Operación** | Ops documentales, obligaciones, tareas, hash SHA-256 |
+| **Inteligencia** | Auditoría cognitiva, semáforo de riesgo, dashboard de análisis, historial de auditorías |
+| **Consulta** | Consulta asistida y historial de preguntas |
+
+El **visor PDF** permanece visible a la izquierda en pantallas amplias.
+
+**Barra de acciones** (debajo del encabezado): consulta asistida, comparar con otro, exportar informe MD/HTML (si hay auditoría), archivar (según permisos).
+
+**Breadcrumb:** Documentos → nombre del archivo.
+
+Si el expediente no existe o no hay acceso, se muestra una pantalla **Expediente no encontrado** con enlace de vuelta a Documentos.
 
 Si el visor indica que el PDF no está disponible, puede tratarse de un registro demo sin archivo físico o de un problema en Storage. La búsqueda puede seguir funcionando si el texto indexado existe.
 
@@ -330,9 +364,58 @@ Uso recomendado:
 3. Crear expedientes cuando haya asuntos diferenciados.
 4. Usar portfolio para preparar reuniones o reportes.
 
-## 11. Auditoría cognitiva
+## 11. Comparador contractual
 
-La auditoría cognitiva se ejecuta desde el detalle del contrato.
+### Para qué sirve
+
+Comparar dos contratos de la misma organización para detectar:
+
+- Cambios críticos (con nivel alto/medio/bajo).
+- Diferencias operativas (fechas, partes, montos, etc.).
+- Cláusulas agregadas, eliminadas o modificadas.
+- Riesgo comparativo (scores 0–100 por documento).
+- Recomendaciones de revisión.
+
+Casos típicos: contrato vigente vs propuesta del proveedor, versión anterior vs renovación, modelo estándar vs contrato negociado.
+
+### Cómo usarlo
+
+Ruta: `/contracts/comparar`. También: `?base={id}` preselecciona el contrato base desde el detalle.
+
+1. Filtrar la lista de contratos comparables (deben estar indexados, en análisis pendiente o ya auditados).
+2. Elegir **Contrato base** (referencia: viejo, firmado o modelo).
+3. Elegir **Contrato a comparar** (propuesta nueva o alternativa).
+4. Usar **Intercambiar** o **Limpiar** si hace falta.
+5. Pulsar **Comparar** y esperar el informe (puede tardar varios segundos).
+6. Revisar secciones colapsables del informe.
+7. Exportar **MD** o **HTML** si se necesita entregar o archivar.
+8. Consultar **Historial de comparaciones** para reabrir informes anteriores.
+
+No se puede comparar un documento consigo mismo. Ambos deben ser distintos.
+
+### Qué incluye el informe
+
+- Resumen ejecutivo.
+- Riesgo comparativo (qué documento es más riesgoso y por qué).
+- Cambios críticos con impacto y sugerencia.
+- Diferencias operativas.
+- Listas de cláusulas y recomendaciones.
+
+El informe **no** es un diff palabra por palabra; prioriza señales legales y operativas relevantes.
+
+### Permisos
+
+Requiere el permiso `run_audit` (habitualmente `admin` y `lawyer`). Sin permiso, la pantalla muestra un aviso y no permite comparar.
+
+### Historial
+
+Las comparaciones quedan guardadas por organización. En el panel **Historial de comparaciones** se ve fecha, actor, resumen y botón **Reabrir informe**.
+
+La bitácora registra la acción `contract.compared`.
+
+## 12. Auditoría cognitiva
+
+La auditoría cognitiva se ejecuta desde la pestaña **Inteligencia** del detalle del contrato.
 
 Sirve para obtener:
 
@@ -350,7 +433,11 @@ Importante:
 - Puede consumir cuota del proveedor de IA.
 - El resultado debe ser validado por el profesional responsable.
 
-## 12. Reportes
+### Consulta asistida
+
+Disponible en la pestaña **Consulta** del detalle (y en resultados de búsqueda en Inicio). Permite hacer preguntas en lenguaje natural sobre el texto indexado del documento. Requiere permiso `run_assisted_query`. Las respuestas deben validarse contra el PDF original.
+
+## 13. Reportes
 
 Desde `/reportes` se pueden generar entregables.
 
@@ -386,7 +473,13 @@ Incluye:
 
 El HTML imprimible puede abrirse en navegador y guardarse como PDF desde la opción de impresión.
 
-## 13. Notificaciones por email
+### Informe comparativo
+
+Se genera desde el **Comparador contractual** (botones Exportar MD / Exportar HTML), no desde la pantalla Reportes.
+
+Incluye resumen ejecutivo, riesgo comparativo, cambios críticos, diferencias operativas y recomendaciones entre el contrato base y el comparado.
+
+## 14. Notificaciones por email
 
 Si el administrador configuró SMTP, Vertia Legal puede enviar un resumen operativo con:
 
@@ -402,7 +495,7 @@ Desde `/reportes`, un administrador puede:
 
 El sistema evita reenviar el mismo resumen al mismo destinatario durante el mismo día, salvo que se fuerce.
 
-## 14. Bitácora
+## 15. Bitácora
 
 La bitácora registra eventos relevantes:
 
@@ -410,6 +503,7 @@ La bitácora registra eventos relevantes:
 - Actualización de documentos.
 - Archivado.
 - Auditoría cognitiva.
+- Comparación contractual.
 - Exportes.
 - Creación o actualización de clientes.
 - Creación o cierre de tareas.
@@ -417,7 +511,22 @@ La bitácora registra eventos relevantes:
 
 Sirve para trazabilidad operativa y control interno.
 
-## 15. Buenas prácticas
+## 16. Permisos por rol (resumen)
+
+| Acción | admin | lawyer | accountant | assistant |
+|--------|-------|--------|------------|-----------|
+| Cargar documentos | Sí | Sí | No | Sí |
+| Editar metadatos / archivar | Sí | Sí | No | No |
+| Auditoría y comparador | Sí | Sí | No | No |
+| Consulta asistida | Sí | Sí | Sí | No |
+| Tareas | Sí | Sí | Sí | Sí |
+| Exportar reportes | Sí | Sí | Sí | No |
+| Mi estudio (usuarios/config) | Sí | No | No | No |
+| Plataforma SaaS | Solo platform admin | — | — | — |
+
+Los botones no disponibles para el rol pueden ocultarse en la interfaz.
+
+## 17. Buenas prácticas
 
 Para mantener la calidad del repositorio:
 
@@ -426,12 +535,13 @@ Para mantener la calidad del repositorio:
 - Completar metadatos clave.
 - Revisar vencimientos luego de cada carga.
 - Crear tareas para todo vencimiento crítico.
-- Validar informes antes de enviarlos al cliente.
+- Usar el comparador antes de firmar renovaciones o propuestas de proveedores.
+- Validar informes (auditoría y comparativo) antes de enviarlos al cliente.
 - Ejecutar IA solo cuando aporte valor.
 - Mantener usuarios individuales.
 - No compartir credenciales.
 
-## 16. Errores comunes
+## 18. Errores comunes
 
 ### El PDF no abre
 
@@ -470,7 +580,30 @@ Posibles causas:
 
 Acción recomendada: revisar `docs/notifications-setup.md`.
 
-## 17. Criterio de uso profesional
+### No puedo comparar contratos
+
+Posibles causas:
+
+- El rol no tiene permiso `run_audit`.
+- Los documentos no están indexados (solo aparecen como comparables los indexados, pendientes de análisis o auditados).
+- Se eligió el mismo documento en base y comparado.
+- Error de red o de base de datos (historial vacío tras migración pendiente).
+
+Acción recomendada: verificar permisos, estado de indexación y que existan al menos dos expedientes distintos comparables.
+
+### No aparece el historial de comparaciones
+
+Causa habitual: la tabla de comparaciones no está migrada en el entorno (migración `018_contract_comparisons`).
+
+Acción recomendada: contactar al administrador técnico o revisar Supabase en el entorno correspondiente.
+
+### Expediente no encontrado
+
+Causa habitual: ID incorrecto, documento archivado o sin acceso en la organización activa.
+
+Acción recomendada: volver a Documentos y abrir el expediente desde el listado.
+
+## 19. Criterio de uso profesional
 
 Vertia Legal ayuda a ordenar y acelerar el trabajo, pero el criterio profesional sigue siendo responsabilidad del usuario.
 
@@ -483,7 +616,7 @@ Antes de enviar un informe o tomar una decisión:
 - Corregir cualquier dato incompleto.
 - Dejar registrada la tarea o acción correspondiente.
 
-## 18. Flujo recomendado diario
+## 20. Flujo recomendado diario
 
 Al iniciar el día:
 
@@ -492,17 +625,27 @@ Al iniciar el día:
 3. Revisar próximas a 7 días.
 4. Tomar tareas propias.
 5. Abrir documentos vinculados.
+6. Revisar alertas en Inicio.
 
 Durante el trabajo:
 
-1. Buscar documentos desde Inicio.
+1. Buscar documentos desde Inicio o filtrar en Documentos.
 2. Crear tareas ante hallazgos.
 3. Actualizar metadatos cuando falten.
 4. Ejecutar auditoría solo si es necesaria.
+5. Comparar versiones contractuales cuando llegue una propuesta nueva o renovación.
 
 Al cerrar el día:
 
 1. Completar tareas cerradas.
 2. Revisar bitácora si hubo actividad sensible.
-3. Exportar informes pendientes.
+3. Exportar informes pendientes (auditoría, portfolio o comparativo).
 4. Enviar resumen por email si corresponde.
+
+### Flujo: negociación con proveedor
+
+1. Cargar o localizar contrato vigente y propuesta nueva en Documentos.
+2. Abrir **Comparar contratos** (o **Comparar con otro** desde el vigente).
+3. Ejecutar comparación y revisar cambios críticos.
+4. Crear tareas para puntos que requieran seguimiento.
+5. Exportar informe HTML para revisión interna o cliente.
