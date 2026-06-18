@@ -6,6 +6,7 @@ import { AssistedQueryHistoryPanel } from "@/components/clm/AssistedQueryHistory
 import { ContractChatPanel } from "@/components/clm/ContractChatPanel";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { ContractDocumentOpsPanel } from "@/components/clm/ContractDocumentOpsPanel";
 import { ContractMetadataEditor } from "@/components/clm/ContractMetadataEditor";
 import { ContractObligationsPanel } from "@/components/clm/ContractObligationsPanel";
@@ -47,6 +48,7 @@ const DETAIL_TABS: { id: DetailTab; label: string }[] = [
 
 export function ContractDetailPanel({ contractId }: ContractDetailPanelProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { can } = useUserProfile();
   const [contract, setContract] = useState<LegalContract | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -59,6 +61,7 @@ export function ContractDetailPanel({ contractId }: ContractDetailPanelProps) {
   const [queryHistoryKey, setQueryHistoryKey] = useState(0);
   const [auditHistoryKey, setAuditHistoryKey] = useState(0);
   const inteligenciaRef = useRef<HTMLDivElement>(null);
+  const pendingInteligenciaScrollRef = useRef(false);
 
   const canRunAudit = can("run_audit");
   const canExport = can("export_reports");
@@ -129,6 +132,31 @@ export function ContractDetailPanel({ contractId }: ContractDetailPanelProps) {
       void supabase.removeChannel(channel);
     };
   }, [applyContract, contractId]);
+
+  const goToInteligenciaTab = useCallback(() => {
+    pendingInteligenciaScrollRef.current = true;
+    setActiveTab("inteligencia");
+  }, []);
+
+  useEffect(() => {
+    if (activeTab !== "inteligencia" || !pendingInteligenciaScrollRef.current) {
+      return;
+    }
+
+    pendingInteligenciaScrollRef.current = false;
+    requestAnimationFrame(() => {
+      inteligenciaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, [activeTab]);
+
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    const hash = typeof window !== "undefined" ? window.location.hash.slice(1) : "";
+
+    if (tabParam === "inteligencia" || hash === "auditoria-cognitiva" || hash === "inteligencia") {
+      goToInteligenciaTab();
+    }
+  }, [searchParams, goToInteligenciaTab]);
 
   async function runCognitiveAudit() {
     setIsAnalyzing(true);
@@ -416,7 +444,11 @@ export function ContractDetailPanel({ contractId }: ContractDetailPanelProps) {
           ) : null}
 
           {activeTab === "inteligencia" ? (
-            <div ref={inteligenciaRef} className="scroll-mt-28 space-y-5">
+            <div
+              id="auditoria-cognitiva"
+              ref={inteligenciaRef}
+              className="scroll-mt-28 space-y-5"
+            >
               {canAudit ? (
                 <button
                   type="button"
@@ -467,6 +499,7 @@ export function ContractDetailPanel({ contractId }: ContractDetailPanelProps) {
                 canQuery={canAssistedQuery}
                 variant="detail"
                 onQueryComplete={() => setQueryHistoryKey((value) => value + 1)}
+                onGoToAudit={goToInteligenciaTab}
               />
               <AssistedQueryHistoryPanel
                 contractId={contractId}

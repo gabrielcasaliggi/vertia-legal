@@ -21,6 +21,7 @@ interface ContractChatPanelProps {
   canQuery?: boolean;
   variant?: "hub" | "detail";
   onQueryComplete?: () => void;
+  onGoToAudit?: () => void;
 }
 
 type QuickPrompt = {
@@ -80,6 +81,7 @@ export function ContractChatPanel({
   canQuery = true,
   variant = "hub",
   onQueryComplete,
+  onGoToAudit,
 }: ContractChatPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -310,7 +312,7 @@ export function ContractChatPanel({
                 onCreateTask={handleCreateTask}
                 taskCreating={taskCreating}
                 taskCreated={lastTaskCreated}
-                hideAuditLink={variant === "detail"}
+                onGoToAudit={variant === "detail" ? onGoToAudit : undefined}
               />
             ) : (
               <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>

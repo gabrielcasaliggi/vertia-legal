@@ -9,8 +9,8 @@ interface AssistedQueryBubbleProps {
   onCreateTask?: (title: string, description: string) => void;
   taskCreating?: boolean;
   taskCreated?: boolean;
-  /** Ocultar enlace a revisión IA cuando ya está en detalle del expediente */
-  hideAuditLink?: boolean;
+  /** En detalle: navegar a la pestaña Inteligencia en lugar de ancla rota */
+  onGoToAudit?: () => void;
 }
 
 const MODE_LABELS: Record<AssistedQueryResult["modo"], string> = {
@@ -25,7 +25,7 @@ export function AssistedQueryBubble({
   onCreateTask,
   taskCreating = false,
   taskCreated = false,
-  hideAuditLink = false,
+  onGoToAudit,
 }: AssistedQueryBubbleProps) {
   return (
     <div className="space-y-3 text-sm leading-relaxed text-slate-700">
@@ -127,23 +127,23 @@ export function AssistedQueryBubble({
             {taskCreated ? "Tarea creada" : taskCreating ? "Creando..." : "Crear tarea"}
           </button>
         ) : null}
-        {contractId && !hideAuditLink ? (
+        {contractId && !onGoToAudit ? (
           <Link href={`/contracts/${contractId}`} className="corp-btn text-xs">
             Abrir documento
           </Link>
         ) : null}
-        {contractId && !hideAuditLink ? (
+        {contractId && !onGoToAudit ? (
           <Link
-            href={`/contracts/${contractId}#auditoria-cognitiva`}
+            href={`/contracts/${contractId}?tab=inteligencia`}
             className="corp-btn-primary text-xs"
           >
             Revisión IA completa
           </Link>
         ) : null}
-        {hideAuditLink ? (
-          <a href="#auditoria-cognitiva" className="corp-btn-primary text-xs">
+        {onGoToAudit ? (
+          <button type="button" onClick={onGoToAudit} className="corp-btn-primary text-xs">
             Ir a auditoría cognitiva
-          </a>
+          </button>
         ) : null}
       </div>
     </div>
